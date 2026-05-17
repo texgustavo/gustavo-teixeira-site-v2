@@ -1,0 +1,309 @@
+/* ============================================================
+   Site Gustavo v2 — WOW
+   Paleta monocromática + chrome + verde lime accent
+   ============================================================ */
+
+:root {
+  --bg: #0d0d0d;
+  --bg-elevated: #1a1a1a;
+  --text: #f0f0f0;
+  --text-muted: #888888;
+  --text-soft: #555555;
+  --accent: #00ff88;
+  --border: #2a2a2a;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  letter-spacing: -0.01em;
+}
+html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
+
+.app {
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* ============ Eyebrow utilitário ============ */
+.eyebrow {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* ============ Hero Shader (fragment shader fullscreen, scroll-driven) ============ */
+
+/* Spacer: section vazia que só reserva 200vh de range de scroll. Sem visual. */
+.hero-shader-spacer {
+  display: block;
+  width: 100%;
+  height: 200vh;
+  background: #000; /* mesmo bg pra não dar flash quando canvas faz fade out */
+  pointer-events: none;
+}
+
+/* Canvas fixo sempre cobrindo a viewport inteira */
+.hero-shader-fixed {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 5;
+  background: #000;
+  transition: opacity 0.3s ease;
+  overflow: hidden;
+}
+
+/* Força QUALQUER canvas dentro a cobrir 100% — defesa contra buffer interno errado */
+.hero-shader-fixed canvas {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+}
+
+.hero-shader__overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  text-align: center;
+  padding: 0 2rem;
+  pointer-events: none;
+  z-index: 10;
+  transition: opacity 0.05s linear; /* fade controlado por JS via inline style */
+}
+
+.hero-shader__eyebrow {
+  font-size: 0.75rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--text);
+  opacity: 0.75;
+  mix-blend-mode: difference;
+}
+
+.hero-shader__title {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-weight: 700;
+  font-size: clamp(3rem, 10vw, 8rem);
+  letter-spacing: -0.04em;
+  line-height: 0.9;
+  color: var(--text);
+  mix-blend-mode: difference;
+  margin: 0;
+}
+
+.hero-shader__sub {
+  font-size: clamp(1rem, 1.6vw, 1.25rem);
+  max-width: 32ch;
+  color: var(--text);
+  opacity: 0.85;
+  line-height: 1.4;
+  mix-blend-mode: difference;
+}
+.hero-shader__sub em {
+  font-style: italic;
+  color: var(--accent);
+  opacity: 1;
+}
+
+.hero-shader__hint {
+  position: absolute;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.72rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  opacity: 0.85;
+  animation: heroHintPulse 2s ease-in-out infinite;
+}
+@keyframes heroHintPulse {
+  0%, 100% { opacity: 0.6; transform: translateX(-50%) translateY(0); }
+  50%      { opacity: 0.95; transform: translateX(-50%) translateY(-4px); }
+}
+
+/* ============ Sobre ============ */
+.about {
+  background: var(--bg-elevated);
+  padding: 8rem 2rem;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.about__inner {
+  max-width: 900px;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+.about__title {
+  font-family: 'Bricolage Grotesque', serif;
+  font-weight: 600;
+  font-size: clamp(2.5rem, 6vw, 5rem);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  margin-top: 1rem;
+}
+.about__title em {
+  font-style: italic;
+  font-weight: 400;
+  color: var(--accent);
+}
+.about__bio {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  color: var(--text-muted);
+  max-width: 62ch;
+  margin-top: 1rem;
+}
+
+.about__stack-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 2rem;
+}
+.about__stack {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.about__stack li {
+  font-size: 0.85rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-muted);
+  transition: border-color 0.2s, color 0.2s;
+}
+.about__stack li:hover {
+  border-color: var(--text);
+  color: var(--text);
+}
+
+/* ============ Footer ============ */
+.footer {
+  background: var(--bg);
+  padding: 8rem 2rem 4rem;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-top: 1px solid var(--border);
+}
+.footer__inner {
+  max-width: 900px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
+}
+.footer__title {
+  font-family: 'Bricolage Grotesque', serif;
+  font-weight: 600;
+  font-size: clamp(2.5rem, 6vw, 5rem);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  margin-top: 0.5rem;
+}
+.footer__title em {
+  font-style: italic;
+  font-weight: 400;
+  color: var(--accent);
+}
+.footer__sub {
+  font-size: 1rem;
+  color: var(--text-muted);
+  margin-bottom: 1rem;
+}
+
+.footer__channels {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  margin-top: 2rem;
+  border-top: 1px solid var(--border);
+}
+.footer__channels li {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 2rem;
+  padding: 1.25rem 0;
+  border-bottom: 1px solid var(--border);
+  align-items: baseline;
+}
+.footer__label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--text-soft);
+}
+.footer__link {
+  font-family: 'Bricolage Grotesque', serif;
+  font-size: clamp(1.2rem, 2.2vw, 1.75rem);
+  color: var(--text);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.footer__link:hover {
+  color: var(--accent);
+}
+
+.footer__cta {
+  align-self: flex-start;
+  margin-top: 3rem;
+  padding: 1.1rem 2.2rem;
+  border-radius: 999px;
+  background: var(--text);
+  color: var(--bg);
+  font-weight: 500;
+  font-size: 1rem;
+  text-decoration: none;
+  transition: background 0.2s, color 0.2s, transform 0.2s;
+}
+.footer__cta:hover {
+  background: var(--accent);
+  color: var(--bg);
+  transform: translateY(-2px);
+}
+
+.footer__credit {
+  margin-top: 3rem;
+  font-size: 0.8rem;
+  color: var(--text-soft);
+  letter-spacing: 0.1em;
+}
+
+@media (max-width: 540px) {
+  .footer__channels li {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+}
