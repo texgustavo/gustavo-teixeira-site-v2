@@ -35,6 +35,10 @@ html, body {
   scrollbar-width: none;
   -ms-overflow-style: none;
   letter-spacing: -0.01em;
+  /* Mata pull-to-refresh no Hero start + elastic bounce no fim */
+  overscroll-behavior: none;
+  /* Evita scroll horizontal acidental (sessões com x: -70vw etc) */
+  overflow-x: hidden;
 }
 html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
 

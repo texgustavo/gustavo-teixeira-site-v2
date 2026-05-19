@@ -18,8 +18,15 @@ export default function App() {
   const lenisRef = useRef<Lenis | null>(null);
 
   // Lenis + ScrollTrigger bridge — instância única, mount-only.
-  // Config premium cinematográfica: duration + ease expo-out (clássico Awwwards/Lusion).
+  // Config premium cinematográfica desktop. SKIP no mobile (native touch é melhor —
+  // Lenis com pin + scrub causa "puxa rápido" feel após exit do Hero pin).
   useEffect(() => {
+    const isMobile = window.innerWidth < 768;
+    if (isMobile) {
+      // No mobile, ScrollTrigger usa native scroll events. Sem Lenis = scroll responsivo.
+      return;
+    }
+
     const lenis = new Lenis({
       duration: 1.25,
       easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
@@ -44,15 +51,17 @@ export default function App() {
     };
   }, []);
 
-  // Toggle stop/start de acordo com preloading — não recria a instância.
+  // Toggle stop/start de acordo com preloading.
+  // Usa body overflow:hidden em paralelo (cobre mobile sem Lenis também).
   useEffect(() => {
     const lenis = lenisRef.current;
-    if (!lenis) return;
     if (preloading) {
-      lenis.stop();
+      lenis?.stop();
+      document.body.style.overflow = 'hidden';
       window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
     } else {
-      lenis.start();
+      lenis?.start();
+      document.body.style.overflow = '';
     }
   }, [preloading]);
 
