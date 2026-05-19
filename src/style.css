@@ -81,7 +81,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
   position: fixed;
   inset: 0;
   width: 100vw;
-  height: 100vh;
+  height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -148,7 +148,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
   top: 0;
   left: 0;
   width: 100vw;
-  height: 100vh;
+  height: 100dvh;
   z-index: 5;
   background: #000;
   transition: opacity 0.3s ease;
@@ -248,7 +248,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
 .video-scrub__pin {
   display: grid;
   width: 100vw;
-  height: 100vh;
+  height: 100dvh;
   overflow: hidden;
   position: relative;
 }
