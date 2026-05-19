@@ -29,11 +29,12 @@ export default function Manifesto() {
     gsap.set(markRef.current, { scale: 0, opacity: 0 });
     if (indicatorRef.current) gsap.set(indicatorRef.current, { opacity: 0, y: 10 });
 
-    // Timeline orquestrada
+    // Timeline orquestrada — dispara assim que a sessão começa a entrar (10% visível)
+    // garantindo que Performance/Identidade animam ANTES de terminar o último card do Projects
     const tl = gsap.timeline({
       scrollTrigger: {
         trigger: root,
-        start: 'top 70%',
+        start: 'top 90%',
         toggleActions: 'play none none reverse',
       },
     });
