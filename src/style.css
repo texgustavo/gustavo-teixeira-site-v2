@@ -4,27 +4,26 @@
    Tipografia: Instrument Serif (headings) + Inter (body) + IBM Plex Mono (pre)
    ============================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap');
 
 :root {
-  /* Paleta dark editorial */
-  --bg: #0a0a0a;                      /* near-black base */
-  --bg-elevated: #131313;             /* level acima — cards */
-  --text: #f0ebe1;                    /* off-white warm */
-  --text-muted: rgba(240, 235, 225, 0.55);
-  --text-soft: rgba(240, 235, 225, 0.3);
-  --accent: #c8ccd1;                  /* silver warm cool */
-  --border: rgba(240, 235, 225, 0.1);
+  /* Paleta warm dark amber — inspirada em AbetterLou.com */
+  --bg: #140B00;                      /* warm dark brown */
+  --bg-elevated: #1D1404;             /* level acima — cards */
+  --text: #ECE6D9;                    /* cream warm */
+  --text-muted: rgba(236, 230, 217, 0.55);
+  --text-soft: rgba(236, 230, 217, 0.3);
+  --accent: #C7995A;                  /* amber gold */
+  --border: rgba(236, 230, 217, 0.1);
 
-  /* Mantidas pra zonas que historicamente eram "on dark" (Hero overlay etc).
-     Agora todas as zonas são dark — vars apontam pros mesmos valores. */
+  /* Vars mantidas pra zonas overlay (todas dark agora). */
   --text-on-dark: var(--text);
-  --text-muted-on-dark: rgba(240, 235, 225, 0.7);
+  --text-muted-on-dark: rgba(236, 230, 217, 0.7);
   --border-on-dark: var(--border);
 
-  /* Fontes */
-  --font-serif: 'Instrument Serif', 'Cormorant', Georgia, serif;
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  /* Fontes — Manrope (free PP Neue Montreal equivalente) pra display, Inter body */
+  --font-serif: 'Manrope', 'Inter', system-ui, -apple-system, sans-serif;
+  --font-sans: 'Manrope', 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, SF Mono, Menlo, monospace;
 }
 
@@ -60,11 +59,11 @@ body::before {
   z-index: -1;
   background-color: var(--bg);
   background-image:
-    url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 1200'%3E%3Cfilter id='t'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.008' numOctaves='3' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 0.94  0 0 0 0 0.92  0 0 0 0 0.88  0 0 0 1 -0.92'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23t)'/%3E%3C/svg%3E"),
-    url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.4' numOctaves='2' seed='3'/%3E%3CfeColorMatrix values='0 0 0 0 0.94  0 0 0 0 0.92  0 0 0 0 0.88  0 0 0 0.18 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 1200'%3E%3Cfilter id='t'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.008' numOctaves='3' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 0.78  0 0 0 0 0.60  0 0 0 0 0.35  0 0 0 1 -0.85'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23t)'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.4' numOctaves='2' seed='3'/%3E%3CfeColorMatrix values='0 0 0 0 0.78  0 0 0 0 0.60  0 0 0 0 0.35  0 0 0 0.14 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   background-size: 1200px 1200px, 220px 220px;
   background-repeat: repeat, repeat;
-  opacity: 0.55;
+  opacity: 0.6;
 }
 html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
 
@@ -103,7 +102,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
   top: 0;
   left: 0;
   transition: transform 0.18s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 0 12px rgba(200, 204, 209, 0.35);
+  box-shadow: 0 0 12px rgba(199, 153, 90, 0.4);
 }
 
 /* ============ Preloader v2 — word cycling + curve exit (framer-motion) ============ */
@@ -140,7 +139,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
   background: var(--accent);
   border-radius: 50%;
   margin-right: 0.7rem;
-  box-shadow: 0 0 12px rgba(200, 204, 209, 0.4);
+  box-shadow: 0 0 12px rgba(199, 153, 90, 0.5);
 }
 
 .preloader-v2__svg {
@@ -539,9 +538,10 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
   align-items: start;
 }
 
-/* ---------- Coluna foto: quadro se abrindo ---------- */
+/* ---------- Coluna foto: quadro se abrindo + STICKY (foto fixa enquanto texto rola) ---------- */
 .about-image-col {
-  position: relative;
+  position: sticky;
+  top: 6rem;
   aspect-ratio: 3 / 4;
   width: 100%;
   max-width: 480px;
@@ -585,12 +585,14 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
   bottom: 0;
 }
 
-/* ---------- Coluna conteúdo ---------- */
+/* ---------- Coluna conteúdo (rola enquanto foto sticky) ---------- */
 .about-content-col {
   display: flex;
   flex-direction: column;
-  gap: 2.5rem;
+  gap: 6rem; /* espaço maior entre blocos pra criar "atos" enquanto foto fica sticky */
   padding-top: 2rem;
+  /* min-height pra garantir scroll suficiente pra foto stickar visível */
+  min-height: 140vh;
 }
 
 .about-bio {
@@ -767,10 +769,14 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
   .about-image-col {
     max-width: 100%;
     aspect-ratio: 4 / 5;
+    /* mobile: tira sticky (vertical stack natural) */
+    position: relative;
+    top: auto;
   }
   .about-content-col {
     padding-top: 0;
     gap: 2rem;
+    min-height: auto;
   }
 }
 
