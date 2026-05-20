@@ -30,8 +30,8 @@
   --font-mono: 'IBM Plex Mono', ui-monospace, SF Mono, Menlo, monospace;
 }
 
-/* Sessões cream — sobrescrevem vars localmente.
-   Tudo dentro herda automaticamente. */
+/* Sessões cream — sobrescrevem vars localmente + atmosfera Warm Aurora
+   (gradientes radial peach + grain de papel — inspiração Juan Mora) */
 .about-section,
 .manifesto {
   --bg: #ECE6D9;
@@ -40,6 +40,30 @@
   --text-muted: #6F6A61;
   --text-soft: #6F6A61;
   --border: #CFC3B2;
+
+  position: relative;
+  isolation: isolate;
+  background:
+    radial-gradient(ellipse 90% 65% at 50% 0%, rgba(245, 217, 192, 0.55), transparent 60%),
+    radial-gradient(ellipse 75% 55% at 85% 100%, rgba(255, 210, 180, 0.35), transparent 60%),
+    radial-gradient(ellipse 60% 70% at 10% 50%, rgba(230, 215, 200, 0.25), transparent 55%),
+    var(--bg);
+}
+
+/* Grain de papel sobre cream — simula textura analógica.
+   Multiply blend cria pontos sépia ao invés de cinza neutro. */
+.about-section::before,
+.manifesto::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 220 220'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='2' seed='5'/%3E%3CfeColorMatrix values='0 0 0 0 0.45  0 0 0 0 0.32  0 0 0 0 0.2  0 0 0 0.35 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  background-size: 220px 220px;
+  background-repeat: repeat;
+  opacity: 0.5;
+  mix-blend-mode: multiply;
 }
 
 * {
