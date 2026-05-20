@@ -1,22 +1,31 @@
 /* ============================================================
-   Site Gustavo v2 — WOW
-   Paleta monocromática + chrome + verde lime accent
+   Site Gustavo v2 — Editorial dark
+   Paleta near-black + texture (topografia + ruído) + silver accent
+   Tipografia: Instrument Serif (headings) + Inter (body) + IBM Plex Mono (pre)
    ============================================================ */
 
-:root {
-  /* Paleta off-white cool — Linear/Vercel/Apple style (aplica só abaixo da Hero) */
-  --bg: #fafaf8;            /* off-white quase puro */
-  --bg-elevated: #f0f0ed;   /* off-white levemente mais escuro */
-  --text: #0a0a0a;          /* dark text */
-  --text-muted: #6b6b6b;    /* gray neutro médio */
-  --text-soft: #a3a3a0;     /* gray neutro fraco */
-  --accent: #f04e23;        /* burnt orange — sunset NYC, casa com Hero */
-  --border: #e5e5e2;        /* linha sutil */
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap');
 
-  /* Zonas DARK (Hero NYC, Lab shader, Preloader) — INTOCADAS */
-  --text-on-dark: #f5f5f5;
-  --text-muted-on-dark: rgba(245, 245, 245, 0.7);
-  --border-on-dark: rgba(255, 255, 255, 0.15);
+:root {
+  /* Paleta dark editorial */
+  --bg: #0a0a0a;                      /* near-black base */
+  --bg-elevated: #131313;             /* level acima — cards */
+  --text: #f0ebe1;                    /* off-white warm */
+  --text-muted: rgba(240, 235, 225, 0.55);
+  --text-soft: rgba(240, 235, 225, 0.3);
+  --accent: #c8ccd1;                  /* silver warm cool */
+  --border: rgba(240, 235, 225, 0.1);
+
+  /* Mantidas pra zonas que historicamente eram "on dark" (Hero overlay etc).
+     Agora todas as zonas são dark — vars apontam pros mesmos valores. */
+  --text-on-dark: var(--text);
+  --text-muted-on-dark: rgba(240, 235, 225, 0.7);
+  --border-on-dark: var(--border);
+
+  /* Fontes */
+  --font-serif: 'Instrument Serif', 'Cormorant', Georgia, serif;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SF Mono, Menlo, monospace;
 }
 
 * {
@@ -28,19 +37,34 @@
 html, body {
   background: var(--bg);
   color: var(--text);
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: var(--font-sans);
   font-weight: 400;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   scrollbar-width: none;
   -ms-overflow-style: none;
   letter-spacing: -0.01em;
-  /* Mata pull-to-refresh no Hero start + elastic bounce no fim */
   overscroll-behavior: none;
-  /* Evita scroll horizontal acidental (sessões com x: -70vw etc).
-     overflow-x: clip em vez de hidden — NÃO quebra position:sticky dos descendentes
-     (Projects cards usam sticky pra stack effect). */
   overflow-x: clip;
+}
+
+/* Camada de textura — topografia suave + ruído de papel.
+   Fixed atrás de tudo (z-index: -1). Mix-blend pra não saturar.
+   Topografia: feTurbulence baixa freq dá curvas orgânicas.
+   Ruído: feTurbulence alta freq dá grain de papel. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  background-color: var(--bg);
+  background-image:
+    url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 1200'%3E%3Cfilter id='t'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.008' numOctaves='3' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 0.94  0 0 0 0 0.92  0 0 0 0 0.88  0 0 0 1 -0.92'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23t)'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.4' numOctaves='2' seed='3'/%3E%3CfeColorMatrix values='0 0 0 0 0.94  0 0 0 0 0.92  0 0 0 0 0.88  0 0 0 0.18 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 1200px 1200px, 220px 220px;
+  background-repeat: repeat, repeat;
+  opacity: 0.55;
 }
 html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
 
@@ -56,7 +80,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
   right: 1.25rem;
   width: 2px;
   height: clamp(80px, 14vh, 140px);
-  background: rgba(13, 13, 13, 0.14);
+  background: rgba(240, 235, 225, 0.12);
   border-radius: 999px;
   z-index: 9990;
   transform: translateY(-50%);
@@ -79,7 +103,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
   top: 0;
   left: 0;
   transition: transform 0.18s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 0 12px rgba(240, 78, 35, 0.4);
+  box-shadow: 0 0 12px rgba(200, 204, 209, 0.35);
 }
 
 /* ============ Preloader v2 — word cycling + curve exit (framer-motion) ============ */
@@ -102,7 +126,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
   display: flex;
   align-items: center;
   color: #ffffff;
-  font-family: 'Bricolage Grotesque', sans-serif;
+  font-family: var(--font-serif);
   font-size: clamp(2rem, 5vw, 3.5rem);
   font-weight: 500;
   letter-spacing: -0.02em;
@@ -116,7 +140,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
   background: var(--accent);
   border-radius: 50%;
   margin-right: 0.7rem;
-  box-shadow: 0 0 12px rgba(240, 78, 35, 0.5);
+  box-shadow: 0 0 12px rgba(200, 204, 209, 0.4);
 }
 
 .preloader-v2__svg {
@@ -203,7 +227,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
 }
 
 .hero-shader__title {
-  font-family: 'Bricolage Grotesque', sans-serif;
+  font-family: var(--font-serif);
   font-weight: 700;
   font-size: clamp(3rem, 10vw, 8rem);
   letter-spacing: -0.04em;
@@ -362,7 +386,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
 }
 
 .video-scrub__cue-title {
-  font-family: 'Bricolage Grotesque', sans-serif;
+  font-family: var(--font-serif);
   font-weight: 600;
   font-size: clamp(2rem, 5vw, 4.25rem);
   line-height: 1.05;
@@ -651,7 +675,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
 }
 
 .about-title {
-  font-family: 'Bricolage Grotesque', sans-serif;
+  font-family: var(--font-serif);
   font-weight: 600;
   font-size: clamp(2.5rem, 6vw, 5rem);
   line-height: 1.0;
@@ -782,7 +806,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
 }
 
 .projects__title {
-  font-family: 'Bricolage Grotesque', sans-serif;
+  font-family: var(--font-serif);
   font-weight: 600;
   font-size: clamp(2.5rem, 6vw, 5rem);
   line-height: 1.0;
@@ -880,7 +904,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
 }
 
 .project-card__title {
-  font-family: 'Bricolage Grotesque', sans-serif;
+  font-family: var(--font-serif);
   font-weight: 600;
   font-size: clamp(2.2rem, 5vw, 4rem);
   line-height: 1;
@@ -1032,7 +1056,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
 }
 
 .manifesto__big {
-  font-family: 'Bricolage Grotesque', sans-serif;
+  font-family: var(--font-serif);
   font-size: clamp(2.5rem, 8vw, 7.5rem); /* menor pra não estourar viewport */
   font-weight: 600;
   line-height: 0.95;
@@ -1136,7 +1160,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
   width: 100%;
 }
 .footer__title {
-  font-family: 'Bricolage Grotesque', serif;
+  font-family: var(--font-serif);
   font-weight: 600;
   font-size: clamp(2.5rem, 6vw, 5rem);
   line-height: 1;
@@ -1176,7 +1200,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
   color: var(--text-soft);
 }
 .footer__link {
-  font-family: 'Bricolage Grotesque', serif;
+  font-family: var(--font-serif);
   font-size: clamp(1.2rem, 2.2vw, 1.75rem);
   color: var(--text);
   text-decoration: none;
