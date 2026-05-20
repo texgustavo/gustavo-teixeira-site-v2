@@ -31,11 +31,12 @@
 }
 
 /* Sessões cream — sobrescrevem vars localmente + atmosfera Warm Aurora
-   (gradientes radial peach + grain de papel — inspiração Juan Mora) */
-.about-section,
+   (gradientes radial peach + grain de papel — inspiração Juan Mora).
+   Aplicado em Projects e Manifesto. Sobre agora é dark steel (default :root). */
+.projects,
 .manifesto {
   --bg: #ECE6D9;
-  --bg-elevated: #ECE6D9;
+  --bg-elevated: #E5DCC9;
   --text: #151515;
   --text-muted: #6F6A61;
   --text-soft: #6F6A61;
@@ -47,12 +48,12 @@
     radial-gradient(ellipse 90% 65% at 50% 0%, rgba(245, 217, 192, 0.55), transparent 60%),
     radial-gradient(ellipse 75% 55% at 85% 100%, rgba(255, 210, 180, 0.35), transparent 60%),
     radial-gradient(ellipse 60% 70% at 10% 50%, rgba(230, 215, 200, 0.25), transparent 55%),
-    var(--bg);
+    var(--bg) !important;
 }
 
 /* Grain de papel sobre cream — simula textura analógica.
    Multiply blend cria pontos sépia ao invés de cinza neutro. */
-.about-section::before,
+.projects::before,
 .manifesto::before {
   content: '';
   position: absolute;
@@ -887,13 +888,21 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
   top: calc(80px + (var(--idx, 1) - 1) * 60px);
   min-height: 78vh;
   margin-bottom: 1.5rem;
-  background: var(--bg-elevated);
+  /* Card dark steel sobre cream — vibe revista editorial.
+     Re-override completo das vars: dentro do card é contexto dark. */
+  --bg: #0C0A08;
+  --bg-elevated: #1A1D28;
+  --text: #D8D4CD;
+  --text-muted: rgba(216, 212, 205, 0.55);
+  --text-soft: rgba(216, 212, 205, 0.3);
+  --border: rgba(216, 212, 205, 0.14);
+  background: #1A1D28;
   border: 1px solid var(--border);
   border-radius: clamp(0.5rem, 1.2vw, 1.25rem);
   overflow: hidden;
   isolation: isolate;
-  /* shadow forte só pro card de cima ficar destacado quando empilhado */
-  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.06);
+  /* shadow mais forte agora — dark card sobre cream precisa de elevação visível */
+  box-shadow: 0 12px 40px rgba(20, 14, 0, 0.18), 0 -2px 8px rgba(20, 14, 0, 0.08);
 }
 
 .project-card__inner {
