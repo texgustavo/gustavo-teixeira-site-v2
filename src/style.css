@@ -7,24 +7,39 @@
 @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap');
 
 :root {
-  /* Paleta warm dark amber — inspirada em AbetterLou.com */
-  --bg: #140B00;                      /* warm dark brown */
-  --bg-elevated: #1D1404;             /* level acima — cards */
-  --text: #ECE6D9;                    /* cream warm */
-  --text-muted: rgba(236, 230, 217, 0.55);
-  --text-soft: rgba(236, 230, 217, 0.3);
-  --accent: #C7995A;                  /* amber gold */
-  --border: rgba(236, 230, 217, 0.1);
+  /* PALETA NYC STEEL & GOLD
+     Default = contexto dark (Hero, Projects, Footer, LabShader, Preloader).
+     Sessões cream (Sobre, Manifesto) sobrescrevem as vars localmente. */
+  --bg: #1A1D28;                          /* steel navy — cena 4 night sky */
+  --bg-elevated: #0C0A08;                 /* warm near-black — cards/cinema */
+  --text: #D8D4CD;                        /* off-white cool */
+  --text-muted: rgba(216, 212, 205, 0.55);
+  --text-soft: rgba(216, 212, 205, 0.3);
+  --accent: #C79858;                      /* warm gold principal */
+  --accent-secondary: #D4A575;            /* lighter gold pra hovers/highlights */
+  --border: rgba(216, 212, 205, 0.14);
 
-  /* Vars mantidas pra zonas overlay (todas dark agora). */
-  --text-on-dark: var(--text);
-  --text-muted-on-dark: rgba(236, 230, 217, 0.7);
-  --border-on-dark: var(--border);
+  /* Mantidas pra zonas que sempre são dark (Hero overlays, LabShader). */
+  --text-on-dark: #D8D4CD;
+  --text-muted-on-dark: rgba(216, 212, 205, 0.7);
+  --border-on-dark: rgba(216, 212, 205, 0.14);
 
-  /* Fontes — Manrope (free PP Neue Montreal equivalente) pra display, Inter body */
+  /* Fontes */
   --font-serif: 'Manrope', 'Inter', system-ui, -apple-system, sans-serif;
   --font-sans: 'Manrope', 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, SF Mono, Menlo, monospace;
+}
+
+/* Sessões cream — sobrescrevem vars localmente.
+   Tudo dentro herda automaticamente. */
+.about-section,
+.manifesto {
+  --bg: #ECE6D9;
+  --bg-elevated: #ECE6D9;
+  --text: #151515;
+  --text-muted: #6F6A61;
+  --text-soft: #6F6A61;
+  --border: #CFC3B2;
 }
 
 * {
@@ -114,7 +129,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #000;
+  background: #0C0A08;
   z-index: 99999;
   overflow: hidden;
 }
@@ -167,7 +182,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
   display: block;
   width: 100%;
   height: 300vh; /* mais scroll = mais tempo imersivo */
-  background: #000;
+  background: #0C0A08;
   pointer-events: none;
 }
 
@@ -179,7 +194,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
   width: 100vw;
   height: 100dvh;
   z-index: 5;
-  background: #000;
+  background: #0C0A08;
   transition: opacity 0.3s ease;
   overflow: hidden;
   /* CRÍTICO: permite scroll vertical via touch (R3F força touch-action:none por padrão) */
@@ -290,7 +305,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
   pointer-events: none;
   user-select: none;
   display: block;
-  background: #000;
+  background: #0C0A08;
 }
 
 .video-scrub__loader {
