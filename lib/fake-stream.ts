@@ -27,9 +27,11 @@ export interface FakeStreamOptions {
   text: string;
   /** Stable identifier for the synthetic text part. */
   id?: string;
+  /** Extra headers to merge into the response (e.g. `x-quota-remaining`). */
+  extraHeaders?: Record<string, string>;
 }
 
-export function buildFakeMessageStream({ text, id }: FakeStreamOptions): Response {
+export function buildFakeMessageStream({ text, id, extraHeaders }: FakeStreamOptions): Response {
   const encoder = new TextEncoder();
   const textId = id ?? `synthetic-${Date.now()}`;
 
@@ -59,6 +61,7 @@ export function buildFakeMessageStream({ text, id }: FakeStreamOptions): Respons
       'x-vercel-ai-ui-message-stream': 'v1',
       'Cache-Control': 'no-cache, no-transform',
       Connection: 'keep-alive',
+      ...(extraHeaders ?? {}),
     },
   });
 }

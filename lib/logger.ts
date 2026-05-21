@@ -32,6 +32,7 @@ export type AgentEventType =
   | 'llm_response'      // L5/L6 success
   | 'output_sanitized'  // L6 stripped something
   | 'cost_capped'       // L8 hard cap hit
+  | 'quota_exhausted'   // per-visitor daily quota reached → CTA streamed
   | 'error';            // unexpected
 
 export interface AgentEvent {

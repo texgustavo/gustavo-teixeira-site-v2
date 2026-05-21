@@ -18,6 +18,13 @@ const SUGGESTIONS = [
 // the network; server still enforces the same limit.
 const MAX_CHARS = 500;
 
+// Mirror lib/quota.ts → DAILY_QUESTION_QUOTA. Display only; server enforces.
+const DAILY_QUOTA = 5;
+
+// Contact CTA shown when the visitor exhausts their daily quota.
+const CTA_WHATSAPP = 'https://wa.me/19177028156';
+const CTA_EMAIL = 'mailto:gustavo.guitar.teixeira@gmail.com';
+
 type StatusLabel = 'IDLE' | 'THINKING' | 'STREAMING' | 'ERROR';
 
 function getStatusLabel(status: string, hasError: boolean): StatusLabel {
@@ -36,8 +43,30 @@ function getMessageText(message: { parts?: Array<{ type: string; text?: string }
 }
 
 export default function AgentTerminal() {
+  // Quota state — populated from `X-Quota-Remaining` header on every response.
+  // Optimistic default (DAILY_QUOTA) for first paint; server is the source of truth.
+  const [quotaRemaining, setQuotaRemaining] = useState<number>(DAILY_QUOTA);
+  const [quotaExhausted, setQuotaExhausted] = useState<boolean>(false);
+
+  // Custom fetch wrapper intercepts response headers BEFORE useChat consumes the
+  // body stream. Setters from useState are stable, so empty deps are fine.
   const transport = useMemo(
-    () => new DefaultChatTransport({ api: '/api/agent' }),
+    () =>
+      new DefaultChatTransport({
+        api: '/api/agent',
+        fetch: async (input, init) => {
+          const res = await fetch(input as RequestInfo, init);
+          const rem = res.headers.get('X-Quota-Remaining');
+          if (rem !== null) {
+            const n = parseInt(rem, 10);
+            if (!Number.isNaN(n)) setQuotaRemaining(Math.max(0, n));
+          }
+          if (res.headers.get('X-Quota-Exhausted') === '1') {
+            setQuotaExhausted(true);
+          }
+          return res;
+        },
+      }),
     []
   );
 
@@ -224,37 +253,69 @@ export default function AgentTerminal() {
         </div>
         {/* /shell */}
 
-        {/* Input row — sempre fixed no bottom da janela */}
-        <form className="agent-terminal__input-row" onSubmit={handleSubmit}>
-        <span className="agent-terminal__prompt">
-          <span className="agent-terminal__prompt-client">client</span>
-          <span className="agent-terminal__prompt-at">@</span>
-          <span className="agent-terminal__prompt-host">gustavo</span>
-          <span className="agent-terminal__prompt-tilde"> ~ </span>
-          <span className="agent-terminal__prompt-percent">%</span>
-        </span>
-        <input
-          ref={inputRef}
-          type="text"
-          className="agent-terminal__input"
-          value={input}
-          onChange={(e) => setInput(e.target.value.slice(0, MAX_CHARS))}
-          onKeyDown={handleKeyDown}
-          maxLength={MAX_CHARS}
-          disabled={isBusy}
-          placeholder={isBusy ? '' : 'pergunte algo...'}
-          aria-label="Pergunta ao agente"
-          autoComplete="off"
-          spellCheck={false}
-        />
-        {input.length === 0 && !isBusy && (
-          <span className="agent-terminal__cursor-block" aria-hidden="true" />
+        {/* Input row OU CTA quando quota esgotada */}
+        {quotaExhausted ? (
+          <div className="agent-terminal__cta">
+            <p className="agent-terminal__cta-title">
+              limite diário atingido — fale comigo direto:
+            </p>
+            <div className="agent-terminal__cta-chips">
+              <a
+                href={CTA_WHATSAPP}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="agent-terminal__cta-chip agent-terminal__cta-chip--whatsapp"
+              >
+                [ WhatsApp · +1 (917) 702-8156 → ]
+              </a>
+              <a
+                href={CTA_EMAIL}
+                className="agent-terminal__cta-chip agent-terminal__cta-chip--email"
+              >
+                [ email · gustavo.guitar.teixeira@gmail.com → ]
+              </a>
+            </div>
+            <p className="agent-terminal__cta-reset">
+              reset em ~24h. limite por proteção (custos de IA).
+            </p>
+          </div>
+        ) : (
+          <form className="agent-terminal__input-row" onSubmit={handleSubmit}>
+            <span className="agent-terminal__prompt">
+              <span className="agent-terminal__prompt-client">client</span>
+              <span className="agent-terminal__prompt-at">@</span>
+              <span className="agent-terminal__prompt-host">gustavo</span>
+              <span className="agent-terminal__prompt-tilde"> ~ </span>
+              <span className="agent-terminal__prompt-percent">%</span>
+            </span>
+            <input
+              ref={inputRef}
+              type="text"
+              className="agent-terminal__input"
+              value={input}
+              onChange={(e) => setInput(e.target.value.slice(0, MAX_CHARS))}
+              onKeyDown={handleKeyDown}
+              maxLength={MAX_CHARS}
+              disabled={isBusy}
+              placeholder={isBusy ? '' : 'pergunte algo...'}
+              aria-label="Pergunta ao agente"
+              autoComplete="off"
+              spellCheck={false}
+            />
+            {input.length === 0 && !isBusy && (
+              <span className="agent-terminal__cursor-block" aria-hidden="true" />
+            )}
+            <span
+              className="agent-terminal__quota"
+              title="Perguntas restantes hoje (24h)"
+            >
+              {quotaRemaining}/{DAILY_QUOTA} perguntas
+            </span>
+            <span className="agent-terminal__counter">
+              {input.length}/{MAX_CHARS}
+            </span>
+          </form>
         )}
-        <span className="agent-terminal__hint">tab ⇥ to use</span>
-        <span className="agent-terminal__counter">
-          {input.length}/{MAX_CHARS}
-        </span>
-        </form>
 
         {error && (
           <p className="agent-terminal__error">

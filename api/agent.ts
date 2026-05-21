@@ -51,6 +51,7 @@ import { hashIp, hashUa, logEvent } from '../lib/logger';
 import { isOverDailyCap, recordUsage } from '../lib/cost-tracker';
 import { sanitizeUiMessageStream } from '../lib/stream-sanitizer';
 import { buildFakeMessageStream } from '../lib/fake-stream';
+import { checkQuota, incrementQuota, DAILY_QUESTION_QUOTA } from '../lib/quota';
 
 export const config = {
   runtime: 'edge',
@@ -214,10 +215,16 @@ export default async function handler(req: Request): Promise<Response> {
 
   const lang = detectLanguage(userText);
 
+  // === Quota check (per-visitor daily limit) ===============================
+  // Read remaining BEFORE deciding the flow so we can attach x-quota-remaining
+  // on every response (LLM, topic-gated, exhausted).
+  const quota = await checkQuota(fp);
+
   // === LAYER 4 — Topic gate (cheap, no LLM call) ===========================
   const topic = checkTopic(userText);
   if (!topic.onTopic && !topic.isGreetingOrMeta) {
     // Stream the fallback as a synthetic assistant message — no token spend.
+    // Off-topic does NOT consume a quota slot — preserves current remaining.
     await logEvent({
       type: 'topic_gated',
       ipHash: ipHashed,
@@ -226,7 +233,33 @@ export default async function handler(req: Request): Promise<Response> {
       latencyMs: Date.now() - startedAt,
       status: 200,
     });
-    return buildFakeMessageStream({ text: fallbackMessage(lang) });
+    return buildFakeMessageStream({
+      text: fallbackMessage(lang),
+      extraHeaders: { 'X-Quota-Remaining': String(quota.remaining) },
+    });
+  }
+
+  // === Quota exhausted → CTA stream (no LLM call) ==========================
+  if (!quota.allowed) {
+    await logEvent({
+      type: 'quota_exhausted',
+      ipHash: ipHashed,
+      uaHash: uaHashed,
+      inputLength: userText.length,
+      latencyMs: Date.now() - startedAt,
+      status: 200,
+    });
+    const cta =
+      lang === 'pt'
+        ? `você atingiu seu limite diário de ${DAILY_QUESTION_QUOTA} perguntas. pra continuar a conversa, fala comigo direto:\n\nWhatsApp: https://wa.me/19177028156\nemail: gustavo.guitar.teixeira@gmail.com`
+        : `you've reached your daily limit of ${DAILY_QUESTION_QUOTA} questions. to keep talking, reach me directly:\n\nWhatsApp: https://wa.me/19177028156\nemail: gustavo.guitar.teixeira@gmail.com`;
+    return buildFakeMessageStream({
+      text: cta,
+      extraHeaders: {
+        'X-Quota-Remaining': '0',
+        'X-Quota-Exhausted': '1',
+      },
+    });
   }
 
   // === Build model messages =================================================
@@ -245,12 +278,14 @@ export default async function handler(req: Request): Promise<Response> {
       messages: modelMessages,
       temperature: 0.4,
       maxOutputTokens: 350,
-      // After the LLM call settles, record token usage for L8 + log.
+      // After the LLM call settles, record token usage for L8 + log + bump quota.
       onFinish: async ({ usage }) => {
         try {
           const inputTokens = Number(usage?.inputTokens ?? 0);
           const outputTokens = Number(usage?.outputTokens ?? 0);
           await recordUsage(inputTokens, outputTokens);
+          // Only successful LLM responses consume a quota slot.
+          await incrementQuota(fp);
           await logEvent({
             type: 'llm_response',
             ipHash: ipHashed,
@@ -287,12 +322,15 @@ export default async function handler(req: Request): Promise<Response> {
     });
 
     // Preserve original headers (content-type, ai-ui-message-stream) but
-    // add strict security headers.
+    // add strict security headers + quota signal for the client.
     const headers = new Headers(upstream.headers);
     headers.set('X-Content-Type-Options', 'nosniff');
     headers.set('Referrer-Policy', 'no-referrer');
     headers.set('Cache-Control', 'no-store');
     headers.set('X-Robots-Tag', 'noindex, nofollow');
+    // Remaining AFTER this question succeeds (current minus 1, clamped). The
+    // client uses this to render the counter and switch to CTA mode at 0.
+    headers.set('X-Quota-Remaining', String(Math.max(0, quota.remaining - 1)));
 
     return new Response(sanitized, {
       status: upstream.status,
