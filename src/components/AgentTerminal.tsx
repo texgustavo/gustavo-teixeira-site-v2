@@ -7,10 +7,10 @@ import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 
 const SUGGESTIONS = [
-  'qual seu stack?',
+  'quanto custa um site?',
+  'como funciona o processo?',
   'me mostra um projeto',
   'tá disponível?',
-  '/help',
 ];
 
 // Mirror the server's hard cap (api/agent.ts → MAX_INPUT_CHARS). Keep this in
