@@ -1813,7 +1813,9 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
   margin-top: 4rem;
 }
 
-/* Sticky inner — fica fixo na viewport durante todo o range do stage */
+/* Sticky inner — fica fixo na viewport durante todo o range do stage.
+   contain:paint isola repaints dentro desse container.
+   translateZ promove layer composite estável. */
 .projects-mask__sticky {
   position: sticky;
   top: 0;
@@ -1822,29 +1824,30 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
   margin-left: calc(50% - 50vw);
   overflow: hidden;
   background: #0C0A08;
+  transform: translateZ(0);
+  contain: layout paint;
 }
 
 /* SVG layers empilhadas, cobrem 100% do sticky.
-   Promove pra GPU layer com transform:translateZ — força composite layer = menos repaints. */
+   Sem will-change (não estamos transformando essas layers — só os rects do mask).
+   will-change permanente em 3 layers desperdiça memória de GPU. */
 .projects-mask__layer {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   display: block;
-  transform: translateZ(0);
-  will-change: transform;
-  backface-visibility: hidden;
 }
 .projects-mask__layer image {
   width: 100%;
   height: 100%;
-  /* Filter simplificado — só brightness (saturate+contrast adicionam custo por frame). */
-  filter: brightness(0.62);
+  /* Sem filter aqui — escurecimento agora vem do overlay ::after (custo zero por frame).
+     filter: brightness em SVG image força raster pass extra durante scroll. */
 }
 
 /* Vignette/gradient overlay PARA LEGIBILIDADE — sobreposto às layers (z:5),
-   abaixo dos textos (z:10). Gradiente forte na esquerda+bottom = onde texto senta. */
+   abaixo dos textos (z:10). Camada base escura uniforme + gradiente direcional
+   pra contraste do texto na esquerda. */
 .projects-mask__sticky::after {
   content: '';
   position: absolute;
@@ -1852,12 +1855,12 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
   z-index: 5;
   pointer-events: none;
   background:
+    /* Base escura uniforme — substitui o filter:brightness(0.62) das images */
+    linear-gradient(0deg, rgba(0, 0, 0, 0.38), rgba(0, 0, 0, 0.38)),
     /* Diagonal escura no canto esquerdo onde texto sai */
-    linear-gradient(120deg, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0.4) 35%, transparent 65%),
+    linear-gradient(120deg, rgba(0, 0, 0, 0.55) 0%, transparent 55%),
     /* Bottom shadow gradient */
-    linear-gradient(0deg, rgba(0, 0, 0, 0.45) 0%, transparent 30%),
-    /* Top sutil */
-    linear-gradient(180deg, rgba(0, 0, 0, 0.2) 0%, transparent 25%);
+    linear-gradient(0deg, rgba(0, 0, 0, 0.35) 0%, transparent 25%);
 }
 
 /* Container dos textos overlay — absoluto sobre as layers */
@@ -1878,8 +1881,10 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
   color: #fff;
   clip-path: inset(100% 0 0 0);
   transform: translateY(40px);
-  /* Sombra forte garante contraste mesmo em fundo claro */
-  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.7), 0 0 60px rgba(0, 0, 0, 0.5);
+  /* Single text-shadow — duas blurs grandes (20px+60px) em texto de até 144px
+     forçavam repaint custoso a cada frame durante scrub. O overlay ::after já
+     dá a base escura pra contraste; sombra só compensa edges. */
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.55);
 }
 
 .projects-mask__order {

@@ -14,9 +14,9 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 gsap.registerPlugin(ScrollTrigger);
 
-// Menos blinds = menos DOM updates por frame. 18 ainda dá um efeito persiana visível,
-// mas com ~36% menos trabalho que 28 (era a versão original do Codrops com 30).
-const BLIND_COUNT = 18;
+// Menos blinds = menos DOM updates por frame. 12 ainda dá efeito persiana visível,
+// e baixa de 108 rects animados (3 layers × 18 × 2) pra 72. ~33% menos trabalho.
+const BLIND_COUNT = 12;
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 type Project = {
@@ -197,14 +197,26 @@ export default function Projects() {
       const stage = stageRef.current;
       if (!stage) return;
 
+      // ÚNICO ScrollTrigger pra master timeline + progress bar.
+      // Dois triggers paralelos com scrub diferente forçavam dois rAF loops
+      // sobrepostos por frame e batiam no main thread.
       const master = gsap.timeline({
         scrollTrigger: {
           trigger: stage,
           start: 'top top',
           end: 'bottom bottom',
-          // scrub baixo = mais responsivo. Lenis já dá smooth — não precisa duplo smoothing.
           scrub: 0.6,
           anticipatePin: 1,
+          onUpdate: (self) => {
+            const progress = self.progress;
+            const total = fillRefs.current.length;
+            for (let i = 0; i < total; i++) {
+              let p = (progress - i / total) * total;
+              p = p < 0 ? 0 : p > 1 ? 1 : p;
+              const fill = fillRefs.current[i];
+              if (fill) fill.style.width = `${p * 100}%`;
+            }
+          },
         },
       });
 
@@ -220,23 +232,6 @@ export default function Projects() {
       masterRef.current = master;
     }
 
-    // Progress bar segments
-    const progressTrigger = ScrollTrigger.create({
-      trigger: stageRef.current,
-      start: 'top top',
-      end: 'bottom bottom',
-      scrub: 0.3,
-      onUpdate: (self) => {
-        const progress = self.progress;
-        const total = fillRefs.current.length;
-        fillRefs.current.forEach((fill, i) => {
-          let p = (progress - i / total) * total;
-          p = Math.max(0, Math.min(1, p));
-          if (fill) fill.style.width = `${p * 100}%`;
-        });
-      },
-    });
-
     updateLayout();
 
     let resizeTimer: ReturnType<typeof setTimeout>;
@@ -250,7 +245,6 @@ export default function Projects() {
       window.removeEventListener('resize', onResize);
       clearTimeout(resizeTimer);
       if (masterRef.current) masterRef.current.kill();
-      progressTrigger.kill();
       ScrollTrigger.getAll()
         .filter((st) => st.trigger === root || st.trigger === stageRef.current)
         .forEach((st) => st.kill());
