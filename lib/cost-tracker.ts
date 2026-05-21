@@ -52,10 +52,22 @@ function dailyKey(): string {
   return `agent:cost:${new Date().toISOString().slice(0, 10)}`;
 }
 
+function hourlyKey(): string {
+  // ISO: 2026-05-21T03 → bucket per UTC hour
+  return `agent:cost:h:${new Date().toISOString().slice(0, 13)}`;
+}
+
 function dailyCapUsd(): number {
   const raw = process.env.AGENT_DAILY_COST_USD;
   const parsed = raw ? Number(raw) : 1;
   if (!Number.isFinite(parsed) || parsed <= 0) return 1;
+  return parsed;
+}
+
+function hourlyCapUsd(): number {
+  const raw = process.env.AGENT_HOURLY_COST_USD;
+  const parsed = raw ? Number(raw) : 0.3;
+  if (!Number.isFinite(parsed) || parsed <= 0) return 0.3;
   return parsed;
 }
 
@@ -78,10 +90,22 @@ export async function getTodayCostUsd(): Promise<number> {
   }
 }
 
-/** Hard cap check. Fail-safe = false (do not block) on tracker errors. */
+/** Current accumulated USD spend in the current UTC hour bucket. */
+export async function getHourCostUsd(): Promise<number> {
+  const redis = getRedis();
+  if (!redis) return 0;
+  try {
+    const raw = await redis.get<number | string | null>(hourlyKey());
+    if (raw === null || raw === undefined) return 0;
+    const n = typeof raw === 'string' ? Number(raw) : raw;
+    return Number.isFinite(n) ? Number(n) : 0;
+  } catch {
+    return 0;
+  }
+}
+
+/** Hard cap check (daily). Fail-safe = false (do not block) on tracker errors. */
 export async function isOverDailyCap(): Promise<boolean> {
-  // When Redis is not configured, we have no way to know — return false (don't block).
-  // The intended deployment ALWAYS has Redis when this layer matters.
   const redis = getRedis();
   if (!redis) return false;
   try {
@@ -92,7 +116,20 @@ export async function isOverDailyCap(): Promise<boolean> {
   }
 }
 
-/** Add usage to today's tally. No-op if Redis missing. Never throws. */
+/** Hard cap check (hourly). Catches burst attacks that would only trip
+ *  the daily cap after eating most of today's budget in a few minutes. */
+export async function isOverHourlyCap(): Promise<boolean> {
+  const redis = getRedis();
+  if (!redis) return false;
+  try {
+    const cost = await getHourCostUsd();
+    return cost >= hourlyCapUsd();
+  } catch {
+    return false;
+  }
+}
+
+/** Add usage to today's AND this hour's tally. No-op if Redis missing. Never throws. */
 export async function recordUsage(inputTokens: number, outputTokens: number): Promise<void> {
   const redis = getRedis();
   if (!redis) return;
@@ -102,10 +139,11 @@ export async function recordUsage(inputTokens: number, outputTokens: number): Pr
   );
   if (!Number.isFinite(cost) || cost <= 0) return;
   try {
-    // Upstash supports incrbyfloat
     await redis.incrbyfloat(dailyKey(), cost);
-    // Expire after 2 days so old keys don't linger
     await redis.expire(dailyKey(), 60 * 60 * 48);
+    await redis.incrbyfloat(hourlyKey(), cost);
+    // Hourly key lives 2h so the window can be inspected after it closes
+    await redis.expire(hourlyKey(), 60 * 60 * 2);
   } catch (err) {
     try {
       console.warn('[cost-tracker] record failed:', err);

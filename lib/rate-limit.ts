@@ -6,10 +6,11 @@
 //   UPSTASH_REDIS_REST_URL    — REST URL from Upstash Console → your Redis DB
 //   UPSTASH_REDIS_REST_TOKEN  — REST token from Upstash Console → your Redis DB
 //
-// When both env vars are set: uses Upstash Redis with three sliding windows:
+// When both env vars are set: uses Upstash Redis with FOUR sliding windows:
 //   - per-fingerprint:   5 req / minute
 //   - per-fingerprint:  20 req / day
-//   - global hard cap: 100 req / hour (protects against distributed/botnet abuse)
+//   - global hard cap:  20 req / minute  (kills burst flood inside 60s window)
+//   - global hard cap: 100 req / hour    (sustained protection vs botnet/proxy abuse)
 //
 // When env vars are NOT set: falls back to the in-memory map limiter
 // (8 req / minute per fingerprint). This is the legacy behavior. It does NOT
@@ -33,15 +34,16 @@ export interface RateLimitResult {
   /** approximate remaining quota in the tightest active window */
   remaining?: number;
   /** which window tripped (useful for logging) */
-  trippedBy?: 'minute' | 'day' | 'global' | 'memory';
+  trippedBy?: 'minute' | 'day' | 'global' | 'global-min' | 'memory';
 }
 
 // ---------------- Config ------------------------------------------------------
 
 const LIMITS = {
-  perMinute: 5,        // per fingerprint
-  perDay: 20,          // per fingerprint
-  globalPerHour: 100,  // across all fingerprints
+  perMinute: 5,         // per fingerprint
+  perDay: 20,           // per fingerprint
+  globalPerMinute: 20,  // across all fingerprints — kills burst flood
+  globalPerHour: 100,   // across all fingerprints — sustained botnet/proxy abuse
 } as const;
 
 const MEMORY_FALLBACK_PER_MINUTE = 8;
@@ -132,6 +134,7 @@ async function upstashCheck(redis: Redis, fp: string): Promise<RateLimitResult> 
   const windows = [
     { key: `rl:m:${fp}`, windowMs: 60_000, limit: LIMITS.perMinute, name: 'minute' as const },
     { key: `rl:d:${fp}`, windowMs: 86_400_000, limit: LIMITS.perDay, name: 'day' as const },
+    { key: `rl:g:min`, windowMs: 60_000, limit: LIMITS.globalPerMinute, name: 'global-min' as const },
     { key: `rl:g:hour`, windowMs: 3_600_000, limit: LIMITS.globalPerHour, name: 'global' as const },
   ];
 

@@ -10,7 +10,7 @@
 //   L5  Hardened system prompt + topic enforcement   → AGENT_SYSTEM_PROMPT
 //   L6  Output sanitizer (URL allowlist + leak kill) → sanitizeUiMessageStream()
 //   L7  Structured logging of security events        → logEvent()
-//   L8  Daily cost cap                               → isOverDailyCap()
+//   L8  Hourly + daily cost cap                      → isOverHourlyCap() / isOverDailyCap()
 //
 // =============================================================================
 // ENV VARS
@@ -21,6 +21,7 @@
 //   IP_HASH_SECRET            (optional) — random string; salts the IP+UA hash
 //                                          used in L2 fingerprinting + L7 logs.
 //   AGENT_DAILY_COST_USD      (optional) — override the $1/day default cap.
+//   AGENT_HOURLY_COST_USD     (optional) — override the $0.30/hour default cap.
 //
 // Without Upstash vars set, the endpoint still works: L2 falls back to an
 // in-memory limiter, L7 console.warns blocked events, L8 is disabled
@@ -48,7 +49,7 @@ import {
 } from '../lib/agent-guard';
 import { checkRateLimit, fingerprint } from '../lib/rate-limit';
 import { hashIp, hashUa, logEvent } from '../lib/logger';
-import { isOverDailyCap, recordUsage } from '../lib/cost-tracker';
+import { isOverDailyCap, isOverHourlyCap, recordUsage } from '../lib/cost-tracker';
 import { sanitizeUiMessageStream } from '../lib/stream-sanitizer';
 import { buildFakeMessageStream } from '../lib/fake-stream';
 import { checkQuota, incrementQuota, DAILY_QUESTION_QUOTA } from '../lib/quota';
@@ -103,11 +104,16 @@ export default async function handler(req: Request): Promise<Response> {
     return jsonError(403, 'forbidden');
   }
 
-  // === LAYER 8 — Daily cost cap (pre-flight) ================================
-  // Block BEFORE we burn tokens. Fail-safe = allow (returns false) if Upstash
-  // is unavailable.
+  // === LAYER 8 — Cost caps (pre-flight) =====================================
+  // Block BEFORE we burn tokens. Hourly cap catches burst attacks that would
+  // eat most of the daily budget in minutes; daily cap is the sustained
+  // backstop. Fail-safe = allow if Upstash is unavailable.
+  if (await isOverHourlyCap()) {
+    await logEvent({ type: 'cost_capped', ipHash: ipHashed, uaHash: uaHashed, status: 503, trippedBy: 'hour' });
+    return jsonError(503, 'service temporarily unavailable');
+  }
   if (await isOverDailyCap()) {
-    await logEvent({ type: 'cost_capped', ipHash: ipHashed, uaHash: uaHashed, status: 503 });
+    await logEvent({ type: 'cost_capped', ipHash: ipHashed, uaHash: uaHashed, status: 503, trippedBy: 'day' });
     return jsonError(503, 'service temporarily unavailable');
   }
 
