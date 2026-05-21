@@ -823,13 +823,15 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
 /* ============ Projects — sticky stacking (Enerblock style) ============ */
 .projects {
   background: var(--bg);
-  padding: 8rem 2rem 4rem;
+  /* Horizontal padding zero pra cards full-bleed. Header recebe seu próprio padding interno. */
+  padding: 8rem 0 4rem;
   position: relative;
 }
 
 .projects__header {
   max-width: 1240px;
   margin: 0 auto 5rem;
+  padding: 0 2rem;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
@@ -877,9 +879,10 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
 
 /* ---------- Stack: cada card é sticky com top incrementado ---------- */
 .projects__stack {
-  max-width: 1240px;
-  margin: 0 auto;
+  /* Full-bleed: cards ocupam viewport inteiro lateral a lateral. */
+  margin: 0;
   position: relative;
+  padding: 0 1.5rem;
 }
 
 .project-card {
@@ -911,7 +914,12 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
   gap: 2.5rem;
   height: 100%;
   min-height: 78vh;
-  padding: clamp(2rem, 4vw, 3.5rem);
+  /* Padding interno escala com viewport — card é full-bleed, conteúdo respira. */
+  padding: clamp(2rem, 4vw, 4.5rem);
+  /* Limite máximo do conteúdo pra não esticar demais em ultrawide */
+  max-width: 1640px;
+  margin: 0 auto;
+  width: 100%;
   will-change: transform, opacity;
 }
 
@@ -1294,4 +1302,683 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
     grid-template-columns: 1fr;
     gap: 0.5rem;
   }
+}
+
+/* ============ Agent Terminal — talk-to-my-agent (imflorea-style) ============ */
+.agent-terminal {
+  /* Background dark navy ligeiramente diferente do steel pra distinguir como "ambiente terminal" */
+  background: #0B0E1A;
+  /* Override de vars dentro dessa sessão */
+  --bg: #0B0E1A;
+  --text: #D8D4CD;
+  --text-muted: rgba(216, 212, 205, 0.55);
+  --text-soft: rgba(216, 212, 205, 0.3);
+  --accent: #C79858;
+  --accent-2: #9D8CFF;        /* roxo "welcome." imflorea */
+  --term-green: #00ff88;      /* prompt / try / dot status */
+  --term-amber: #F5C271;      /* chips outline */
+  --border: rgba(216, 212, 205, 0.12);
+
+  color: var(--text);
+  font-family: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  padding: clamp(2rem, 5vh, 4rem) clamp(1.5rem, 3vw, 3rem) clamp(1.5rem, 4vh, 3rem);
+  /* Imersivo — preenche viewport inteiro, sensação de terminal takeover */
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  isolation: isolate;
+  /* z-index acima do .hero-shader-fixed (z:5) — o R3F Canvas do LabShader força
+     pointer-events:auto nos descendentes internos, então só `pe:none` no wrapper não basta.
+     z-index maior garante que o agent recebe clicks/keys mesmo com o canvas invisível por cima. */
+  z-index: 10;
+}
+
+/* Grid sutil de fundo — vibe "terminal CRT" autêntico mas discreto */
+.agent-terminal::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    linear-gradient(rgba(216, 212, 205, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(216, 212, 205, 0.025) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 50%, black 30%, transparent 80%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 50%, black 30%, transparent 80%);
+}
+
+.agent-terminal__window {
+  position: relative;
+  z-index: 1;
+  max-width: 1280px;
+  width: 100%;
+  margin: 0 auto;
+  /* Container preenche o restante do espaço vertical da sessão */
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  /* Frame de janela de terminal */
+  background: rgba(11, 14, 26, 0.85);
+  border: 1px solid rgba(216, 212, 205, 0.14);
+  border-radius: 0.6rem;
+  overflow: hidden;
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.45),
+    0 2px 0 rgba(255, 255, 255, 0.025) inset,
+    0 -1px 0 rgba(0, 0, 0, 0.3) inset;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+/* Chrome / title bar — dots Mac-style + título centralizado */
+.agent-terminal__chrome {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1.1rem;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(0, 0, 0, 0.15));
+  border-bottom: 1px solid rgba(216, 212, 205, 0.1);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.agent-terminal__dots {
+  display: inline-flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+.agent-terminal__dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.3) inset;
+}
+.agent-terminal__dot--red    { background: #ff5f57; }
+.agent-terminal__dot--amber  { background: #febc2e; }
+.agent-terminal__dot--green  { background: #28c840; }
+
+.agent-terminal__chrome .agent-terminal__brand {
+  text-align: center;
+  justify-self: center;
+}
+
+/* Shell da janela — área scrollável com welcome + log */
+.agent-terminal__shell {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: clamp(1.5rem, 3vw, 2.5rem) clamp(1.25rem, 2.5vw, 2rem);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(216, 212, 205, 0.18) transparent;
+  min-height: 0;
+}
+.agent-terminal__shell::-webkit-scrollbar { width: 6px; }
+.agent-terminal__shell::-webkit-scrollbar-thumb {
+  background: rgba(216, 212, 205, 0.18);
+  border-radius: 3px;
+}
+
+/* Removida borda do panel (agora janela inteira tem a borda) */
+.agent-terminal .agent-terminal__panel {
+  max-width: none;
+  margin: 0 0 1.5rem;
+  border: none;
+  padding: 0 0 0.5rem;
+  background: none;
+}
+
+.agent-terminal .agent-terminal__log {
+  margin: 0;
+  max-height: none;
+  overflow: visible;
+  padding: 0;
+}
+
+/* Input row dentro da janela — separador top, padding interno */
+.agent-terminal .agent-terminal__input-row {
+  max-width: none;
+  margin: 0;
+  padding: 1.1rem clamp(1.25rem, 2.5vw, 2rem);
+  border-top: 1px solid rgba(216, 212, 205, 0.1);
+  background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.18));
+  flex-shrink: 0;
+}
+.agent-terminal .agent-terminal__input-row::before {
+  display: none; /* removida linha glow — borda da janela já dá o efeito */
+}
+
+.agent-terminal .agent-terminal__error {
+  max-width: none;
+  margin: 0;
+  padding: 0.65rem clamp(1.25rem, 2.5vw, 2rem);
+  border-top: 1px solid rgba(255, 87, 87, 0.2);
+  background: rgba(255, 87, 87, 0.06);
+}
+
+/* Topbar — brand left + status badge right */
+.agent-terminal__topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  max-width: 1240px;
+  margin: 0 auto 1.5rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+  color: var(--text-muted);
+}
+.agent-terminal__brand {
+  text-transform: uppercase;
+}
+.agent-terminal__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.02);
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  white-space: nowrap;
+}
+.agent-terminal__status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--term-green);
+  box-shadow: 0 0 8px rgba(0, 255, 136, 0.55);
+}
+.agent-terminal__status--thinking .agent-terminal__status-dot,
+.agent-terminal__status--streaming .agent-terminal__status-dot {
+  background: var(--accent);
+  box-shadow: 0 0 8px rgba(199, 152, 88, 0.6);
+  animation: agentDotPulse 1.1s ease-in-out infinite;
+}
+.agent-terminal__status--error .agent-terminal__status-dot {
+  background: #ff5757;
+  box-shadow: 0 0 8px rgba(255, 87, 87, 0.5);
+}
+@keyframes agentDotPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* Welcome panel — borda fina envolvendo o card de boas-vindas */
+.agent-terminal__panel {
+  max-width: 1240px;
+  margin: 0 auto 2.5rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: clamp(1.5rem, 3vw, 2.5rem) clamp(1.5rem, 3vw, 2.75rem);
+  background: linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0));
+}
+
+.agent-terminal__welcome {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: clamp(1.85rem, 4.5vw, 3.25rem);
+  font-weight: 400;
+  color: var(--accent-2);
+  margin: 0 0 1rem;
+  letter-spacing: -0.02em;
+}
+
+.agent-terminal__body {
+  margin: 0 0 1.25rem;
+  color: var(--text);
+  font-size: clamp(1rem, 1.6vw, 1.15rem);
+  max-width: 60ch;
+  line-height: 1.6;
+}
+
+.agent-terminal__disclaimer {
+  margin: 0 0 1.75rem;
+  color: var(--text-soft);
+  font-size: 0.82rem;
+}
+
+.agent-terminal__try {
+  margin: 0 0 1rem;
+  color: var(--term-green);
+  font-size: 0.95rem;
+}
+.agent-terminal__try-dollar { color: var(--term-green); margin-right: 0.4rem; }
+.agent-terminal__try-arrow { color: var(--term-green); opacity: 0.7; }
+.agent-terminal__try::before { content: ''; }
+
+/* Suggestion chips */
+.agent-terminal__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+.agent-terminal__chip {
+  font-family: inherit;
+  font-size: 0.92rem;
+  color: var(--term-amber);
+  background: transparent;
+  border: 1px solid rgba(245, 194, 113, 0.35);
+  padding: 0.55rem 1rem;
+  border-radius: 0.4rem;
+  cursor: pointer;
+  letter-spacing: 0.01em;
+  transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.15s;
+}
+.agent-terminal__chip:hover:not(:disabled) {
+  background: rgba(245, 194, 113, 0.08);
+  border-color: var(--term-amber);
+  transform: translateY(-1px);
+}
+.agent-terminal__chip:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Conversation log */
+.agent-terminal__log {
+  max-width: 1240px;
+  margin: 0 auto 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(216, 212, 205, 0.18) transparent;
+}
+.agent-terminal__log::-webkit-scrollbar { width: 6px; }
+.agent-terminal__log::-webkit-scrollbar-thumb {
+  background: rgba(216, 212, 205, 0.18);
+  border-radius: 3px;
+}
+
+.agent-terminal__row {
+  font-size: 0.95rem;
+  line-height: 1.55;
+  word-break: break-word;
+}
+.agent-terminal__row--user {
+  color: var(--text);
+}
+.agent-terminal__row--bot {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+}
+
+/* Prompt assemble: client@gustavo ~ % */
+.agent-terminal__prompt {
+  display: inline-flex;
+  align-items: baseline;
+  font-weight: 500;
+}
+.agent-terminal__prompt-client { color: var(--term-green); font-weight: 600; }
+.agent-terminal__prompt-at { color: var(--text); }
+.agent-terminal__prompt-host { color: var(--term-green); font-weight: 600; font-style: italic; }
+.agent-terminal__prompt-tilde { color: var(--text-muted); }
+.agent-terminal__prompt-percent { color: var(--term-green); font-weight: 600; }
+
+.agent-terminal__user-text {
+  color: var(--text);
+}
+
+/* Bot row */
+.agent-terminal__bot-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  background: var(--accent);
+  color: var(--bg);
+  font-family: var(--font-serif, inherit);
+  font-weight: 700;
+  font-size: 0.85rem;
+  border-radius: 0.3rem;
+  flex-shrink: 0;
+  margin-top: 1px;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.04);
+}
+.agent-terminal__bot-body { flex: 1; min-width: 0; }
+.agent-terminal__bot-text {
+  color: var(--text);
+  white-space: pre-wrap;
+  line-height: 1.6;
+}
+.agent-terminal__bot-text em { color: var(--text-soft); font-style: normal; }
+.agent-terminal__bot-text--thinking { min-height: 1.4em; }
+.agent-terminal__blink {
+  display: inline-block;
+  color: var(--accent);
+  animation: agentBlink 0.9s steps(2, end) infinite;
+}
+@keyframes agentBlink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+.agent-terminal__meta {
+  margin-top: 0.4rem;
+  color: var(--text-soft);
+  font-size: 0.8rem;
+}
+
+/* Input row — sempre no fundo, full-width, vibe shell ativo */
+.agent-terminal__input-row {
+  max-width: 1240px;
+  margin: auto auto 0; /* empurra pra baixo do flex container parent */
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  border-top: 1px solid var(--border);
+  padding-top: 1.5rem;
+  margin-top: auto;
+  flex-wrap: wrap;
+  position: relative;
+}
+/* Cursor piscante depois do prompt — só visível quando input vazio */
+.agent-terminal__input-row::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: -1px;
+  width: 32px;
+  height: 1px;
+  background: var(--term-green);
+  box-shadow: 0 0 6px rgba(0, 255, 136, 0.4);
+}
+.agent-terminal__input {
+  flex: 1 1 200px;
+  min-width: 120px;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 1.02rem;
+  padding: 0.35rem 0;
+  caret-color: var(--term-green);
+  caret-shape: block;
+}
+.agent-terminal__input::placeholder {
+  color: var(--text-soft);
+  font-style: italic;
+}
+.agent-terminal__input:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+/* Cursor block depois do prompt quando input vazio + focused */
+.agent-terminal__input-row:focus-within .agent-terminal__cursor-block {
+  display: inline-block;
+}
+.agent-terminal__cursor-block {
+  display: inline-block;
+  width: 0.55em;
+  height: 1.05em;
+  background: var(--term-green);
+  margin-left: 0.15em;
+  vertical-align: text-bottom;
+  animation: agentCaretBlink 1.1s steps(2, end) infinite;
+  flex-shrink: 0;
+  box-shadow: 0 0 6px rgba(0, 255, 136, 0.5);
+}
+@keyframes agentCaretBlink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+.agent-terminal__hint {
+  font-size: 0.72rem;
+  color: var(--text-soft);
+  border: 1px solid var(--border);
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.25rem;
+  letter-spacing: 0.05em;
+}
+.agent-terminal__counter {
+  color: var(--text-soft);
+  font-size: 0.78rem;
+  min-width: 60px;
+  text-align: right;
+}
+
+.agent-terminal__error {
+  max-width: 1240px;
+  margin: 1rem auto 0;
+  color: #ff5757;
+  font-size: 0.85rem;
+}
+
+/* Responsive */
+@media (max-width: 820px) {
+  .agent-terminal {
+    padding: 4rem 1.25rem;
+    font-size: 0.9rem;
+  }
+  .agent-terminal__topbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    font-size: 0.68rem;
+  }
+  .agent-terminal__welcome {
+    font-size: clamp(1.6rem, 7vw, 2.4rem);
+  }
+  .agent-terminal__body {
+    font-size: 0.95rem;
+  }
+  .agent-terminal__chip {
+    font-size: 0.82rem;
+    padding: 0.45rem 0.75rem;
+  }
+  .agent-terminal__hint { display: none; }
+  .agent-terminal__counter { min-width: 50px; font-size: 0.7rem; }
+  .agent-terminal__input { font-size: 0.92rem; }
+}
+
+/* ============ Projects (mask scroll variant) — SVG mask transition ============ */
+/* Hint debaixo do header indicando role pra descobrir */
+.projects__scroll-hint {
+  margin-top: 2.5rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
+/* Stage — reserva 350vh de scroll (3 imagens × ~115vh cada). Mais curto = menos lag percebido. */
+.projects-mask__stage {
+  position: relative;
+  height: 350vh;
+  /* Override do bg cream: dentro do stage, ambiente dark cinematográfico */
+  background: #0C0A08;
+  margin-top: 4rem;
+}
+
+/* Sticky inner — fica fixo na viewport durante todo o range do stage */
+.projects-mask__sticky {
+  position: sticky;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  margin-left: calc(50% - 50vw);
+  overflow: hidden;
+  background: #0C0A08;
+}
+
+/* SVG layers empilhadas, cobrem 100% do sticky.
+   Promove pra GPU layer com transform:translateZ — força composite layer = menos repaints. */
+.projects-mask__layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  transform: translateZ(0);
+  will-change: transform;
+  backface-visibility: hidden;
+}
+.projects-mask__layer image {
+  width: 100%;
+  height: 100%;
+  /* Filter simplificado — só brightness (saturate+contrast adicionam custo por frame). */
+  filter: brightness(0.62);
+}
+
+/* Vignette/gradient overlay PARA LEGIBILIDADE — sobreposto às layers (z:5),
+   abaixo dos textos (z:10). Gradiente forte na esquerda+bottom = onde texto senta. */
+.projects-mask__sticky::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  background:
+    /* Diagonal escura no canto esquerdo onde texto sai */
+    linear-gradient(120deg, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0.4) 35%, transparent 65%),
+    /* Bottom shadow gradient */
+    linear-gradient(0deg, rgba(0, 0, 0, 0.45) 0%, transparent 30%),
+    /* Top sutil */
+    linear-gradient(180deg, rgba(0, 0, 0, 0.2) 0%, transparent 25%);
+}
+
+/* Container dos textos overlay — absoluto sobre as layers */
+.projects-mask__texts {
+  position: absolute;
+  inset: 0;
+  padding: clamp(2rem, 5vw, 5rem);
+  pointer-events: none;
+  z-index: 10;
+}
+
+.projects-mask__txt {
+  position: absolute;
+  bottom: 6vh;
+  left: 0;
+  width: 100%;
+  padding: 0 clamp(2rem, 5vw, 5rem);
+  color: #fff;
+  clip-path: inset(100% 0 0 0);
+  transform: translateY(40px);
+  /* Sombra forte garante contraste mesmo em fundo claro */
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.7), 0 0 60px rgba(0, 0, 0, 0.5);
+}
+
+.projects-mask__order {
+  display: inline-block;
+  font-family: var(--font-mono, 'IBM Plex Mono', monospace);
+  font-size: 0.78rem;
+  letter-spacing: 0.24em;
+  color: var(--accent, #C79858);
+  margin-bottom: 2vh;
+}
+
+.projects-mask__title {
+  font-family: var(--font-serif, 'Manrope', sans-serif);
+  font-size: clamp(3.5rem, 8vw, 9rem);
+  font-weight: 500;
+  line-height: 0.92;
+  letter-spacing: -0.035em;
+  margin: 0;
+  max-width: 60%;
+}
+
+.projects-mask__category {
+  font-family: var(--font-mono, 'IBM Plex Mono', monospace);
+  font-size: clamp(0.85rem, 1.1vw, 1.05rem);
+  font-weight: 400;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 2.5vh 0 0;
+}
+
+.projects-mask__body {
+  font-family: var(--font-sans, 'Manrope', sans-serif);
+  font-size: clamp(1rem, 1.15vw, 1.2rem);
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.85);
+  max-width: 40ch;
+  margin: 2.5vh 0 0;
+}
+
+.projects-mask__link {
+  display: inline-block;
+  margin-top: 3vh;
+  padding: 0.7rem 1.4rem;
+  font-family: var(--font-mono, 'IBM Plex Mono', monospace);
+  font-size: 0.85rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent, #C79858);
+  border: 1px solid var(--accent, #C79858);
+  border-radius: 0.3rem;
+  text-decoration: none;
+  pointer-events: auto;
+  transition: background 0.25s, color 0.25s;
+}
+.projects-mask__link:hover {
+  background: var(--accent, #C79858);
+  color: #0C0A08;
+}
+
+/* Progress bar no fundo */
+.projects-mask__progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  padding: 2.5rem clamp(2rem, 5vw, 5rem);
+  display: flex;
+  gap: 1rem;
+  z-index: 20;
+}
+.projects-mask__segment {
+  flex: 1;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.18);
+  overflow: hidden;
+  position: relative;
+}
+.projects-mask__fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0%;
+  height: 100%;
+  background: var(--accent, #C79858);
+  box-shadow: 0 0 8px rgba(199, 152, 88, 0.5);
+}
+
+/* Mobile adjustments */
+@media (max-width: 820px) {
+  .projects-mask__title {
+    font-size: clamp(2.5rem, 11vw, 4.5rem);
+    max-width: 90%;
+  }
+  .projects-mask__body {
+    max-width: 90%;
+  }
+  .projects-mask__progress {
+    padding: 1.5rem 1.25rem;
+    gap: 0.5rem;
+  }
+}
+
+/* Desabilita a transição persiana (clip-path) do .projects no contexto mask
+   — quando você entra no Projects, o clip-path antigo competia com o sticky.
+   Aqui o stage tem sua própria entrada via mask reveal. */
+.projects--mask {
+  background: #ECE6D9; /* mantém cream antes do stage */
 }

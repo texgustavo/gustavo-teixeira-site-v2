@@ -9,6 +9,7 @@ import LabShader from './components/LabShader';
 import About from './components/About';
 import Projects from './components/Projects';
 import Manifesto from './components/Manifesto';
+import AgentTerminal from './components/AgentTerminal';
 import Footer from './components/Footer';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -83,6 +84,9 @@ export default function App() {
 
         {/* Respiro editorial entre Projects e Lab */}
         <Manifesto />
+
+        {/* Talk-to-my-agent — terminal aesthetic, streaming Claude Haiku 4.5 */}
+        <AgentTerminal />
 
         {/* Sessão de demonstração — fragment shader raymarching fullscreen */}
         <LabShader />

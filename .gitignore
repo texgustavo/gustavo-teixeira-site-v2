@@ -3,6 +3,8 @@ dist/
 .DS_Store
 *.log
 .env
+.env.local
+.env.*.local
 .vite/
 
 # Internal docs (mentorship notes, prompts) — manter privado
@@ -10,3 +12,4 @@ CLAUDE.md
 PROMPT-CLAUDE-CODE.md
 DEPLOY-PROMPT.md
 NEXT-SESSION.md
+.vercel

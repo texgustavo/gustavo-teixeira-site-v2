@@ -161,6 +161,10 @@ export default function LabShader() {
         <Canvas
           // key fixa força React a desmontar/remontar SEMPRE em hot reload — evita canvas duplicado de HMR
           key="hero-canvas"
+          // PERF: pausa loop quando sessão NÃO tá visível. 'always' = roda 60fps full.
+          // 'demand' = só renderiza quando algo muda (resize/state). useFrame não dispara.
+          // Libera GPU pras outras sessões (Projects mask transition fica mais suave).
+          frameloop={active ? 'always' : 'demand'}
           gl={{ antialias: false, alpha: false, powerPreference: 'high-performance' }}
           dpr={1}
           // resize: { scroll: false } evita re-medir em scroll (que estava bagunçando size)
