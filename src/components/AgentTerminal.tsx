@@ -42,6 +42,73 @@ function getMessageText(message: { parts?: Array<{ type: string; text?: string }
     .join('');
 }
 
+// Typewriter: progressively reveals `target` character-by-character.
+// Decoupled from the streaming chunk sizes so it always feels like typing,
+// even when the server delivers a big chunk in one frame.
+//
+// Speed: ~22ms per char (~45cps), with a small adaptive nudge when the
+// buffer falls way behind (so it catches up after a burst without
+// looking robotic).
+function useTypewriter(target: string): string {
+  const [displayedLength, setDisplayedLength] = useState(0);
+
+  useEffect(() => {
+    // Defensive: if the target shrinks (new message, edit, reset), snap back.
+    if (displayedLength > target.length) {
+      setDisplayedLength(target.length);
+      return;
+    }
+    // Already caught up — wait for more streaming or finish.
+    if (displayedLength >= target.length) return;
+
+    const remaining = target.length - displayedLength;
+    // Adaptive: 1 char per tick under normal load. If we're way behind a burst
+    // (LLM dumped 200 chars at once), accelerate slightly so we don't lag forever.
+    const charsPerTick = remaining > 200 ? 4 : remaining > 80 ? 2 : 1;
+    const delayMs = 22;
+
+    const id = window.setTimeout(() => {
+      setDisplayedLength((n) => Math.min(target.length, n + charsPerTick));
+    }, delayMs);
+
+    return () => window.clearTimeout(id);
+  }, [displayedLength, target]);
+
+  return target.slice(0, displayedLength);
+}
+
+// Single assistant message — owns its typewriter state, so each bubble
+// types independently and re-renders don't reset progress.
+function BotMessage({
+  message,
+  respTime,
+}: {
+  message: { id: string; parts?: Array<{ type: string; text?: string }> };
+  respTime: number | undefined;
+}) {
+  const target = getMessageText(message);
+  const displayed = useTypewriter(target);
+  const isDone = displayed.length >= target.length && target.length > 0;
+  return (
+    <div className="agent-terminal__row agent-terminal__row--bot">
+      <span className="agent-terminal__bot-icon" aria-hidden="true">G</span>
+      <div className="agent-terminal__bot-body">
+        <div className="agent-terminal__bot-text">
+          {displayed || <em>…</em>}
+          {!isDone && target.length > 0 && (
+            <span className="agent-terminal__type-caret" aria-hidden="true">▌</span>
+          )}
+        </div>
+        {respTime !== undefined && isDone && (
+          <div className="agent-terminal__meta">
+            [answered in {respTime}s]
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function AgentTerminal() {
   // Quota state — populated from `X-Quota-Remaining` header on every response.
   // Optimistic default (DAILY_QUOTA) for first paint; server is the source of truth.
@@ -224,17 +291,7 @@ export default function AgentTerminal() {
               );
             }
             return (
-              <div className="agent-terminal__row agent-terminal__row--bot" key={m.id}>
-                <span className="agent-terminal__bot-icon" aria-hidden="true">G</span>
-                <div className="agent-terminal__bot-body">
-                  <div className="agent-terminal__bot-text">{text || <em>…</em>}</div>
-                  {respTimes[m.id] !== undefined && (
-                    <div className="agent-terminal__meta">
-                      [answered in {respTimes[m.id]}s]
-                    </div>
-                  )}
-                </div>
-              </div>
+              <BotMessage key={m.id} message={m} respTime={respTimes[m.id]} />
             );
           })}
           {status === 'submitted' && (

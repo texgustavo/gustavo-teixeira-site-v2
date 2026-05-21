@@ -1661,6 +1661,13 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
   color: var(--accent);
   animation: agentBlink 0.9s steps(2, end) infinite;
 }
+.agent-terminal__type-caret {
+  display: inline-block;
+  margin-left: 1px;
+  color: var(--accent);
+  animation: agentBlink 0.9s steps(2, end) infinite;
+  font-weight: 400;
+}
 @keyframes agentBlink {
   0%, 50% { opacity: 1; }
   51%, 100% { opacity: 0; }
