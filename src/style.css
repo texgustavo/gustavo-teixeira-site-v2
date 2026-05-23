@@ -158,14 +158,21 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
   pointer-events: none;
   will-change: opacity;
 }
-/* Film grain sutil — feTurbulence high-freq + screen blend pra acender uns
-   pixels sobre o preto. Vibe cinema 35mm sem distrair do card. */
+/* Textura "topografia + ruído" — duas camadas screen blend sobre preto,
+   adaptado do pattern v2 (linha 91 do style.css):
+   - Topografia: low-freq fractalNoise → curvas orgânicas estilo carta náutica
+   - Grain: high-freq fractalNoise → film grain de papel
+   Visibilidade calibrada pra ser claramente perceptível sem distrair do card. */
 #bt-backdrop::after {
   content: '';
   position: absolute;
   inset: 0;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='320' height='320'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1 0'/></filter><rect width='100%' height='100%' filter='url(%23g)'/></svg>");
-  opacity: 0.06;
+  background-image:
+    url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 1200'%3E%3Cfilter id='t'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.008' numOctaves='3' seed='9'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1 -0.55'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23t)'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.4' numOctaves='2' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.32 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 1400px 1400px, 240px 240px;
+  background-position: center center, 0 0;
+  opacity: 0.6;
   mix-blend-mode: screen;
   pointer-events: none;
 }
