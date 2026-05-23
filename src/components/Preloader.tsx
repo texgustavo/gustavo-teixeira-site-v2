@@ -1,164 +1,254 @@
-// Preloader.tsx — word cycling multilíngue + curve exit (framer-motion)
-// + preload paralelo dos 372 frames do Hero NYC.
-// Exit só dispara quando AMBOS terminam: ciclo de palavras + frames carregados.
+// Preloader.tsx — block transition (skill: gustavo-block-transition)
+// Dois cards (loader + hero-stand-in) se empurrando como esteira; hero-panel
+// expande fullscreen + fade-out revelando o VideoScrubSection por baixo.
+// Ready signal = fonts.ready + window.load + 372 frames pré-carregados.
 
-import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { useEffect, useRef } from 'react';
+import gsap from 'gsap';
 
-const WORDS = ['Hello', 'Bonjour', 'Ciao', 'Olá', 'やあ', 'Hallå', 'Guten Tag', 'হ্যালো'];
+const TITLE_1 = 'Gustavo Teixeira';
+const TITLE_2 = 'Creative Developer · NY';
 
 const FRAME_COUNT = 372;
 const framePath = (i: number) =>
   `/frames/f_${String(i + 1).padStart(4, '0')}.webp`;
-
-const opacity = {
-  initial: { opacity: 0 },
-  enter: { opacity: 0.85, transition: { duration: 1, delay: 0.2 } },
-};
-
-const slideUp = {
-  initial: { top: 0 },
-  exit: {
-    top: '-100vh',
-    transition: { duration: 0.8, ease: [0.76, 0, 0.24, 1] as const, delay: 0.2 },
-  },
-};
 
 interface PreloaderProps {
   onComplete?: () => void;
 }
 
 export default function Preloader({ onComplete }: PreloaderProps) {
-  const [index, setIndex] = useState(0);
-  const [dimension, setDimension] = useState({ width: 0, height: 0 });
-  const [isExiting, setIsExiting] = useState(false);
-  const [framesLoaded, setFramesLoaded] = useState(false);
-  const [wordsDone, setWordsDone] = useState(false);
+  const loaderRef = useRef<HTMLDivElement>(null);
+  const heroPanelRef = useRef<HTMLDivElement>(null);
+  const titleRef = useRef<HTMLDivElement>(null);
+  const specimenRef = useRef<HTMLDivElement>(null);
+  const counterRef = useRef<HTMLDivElement>(null);
+  const numRef = useRef<HTMLSpanElement>(null);
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
 
-  // Mede viewport (necessário pro SVG path da curva)
   useEffect(() => {
-    setDimension({ width: window.innerWidth, height: window.innerHeight });
-    const onResize = () => {
-      setDimension({ width: window.innerWidth, height: window.innerHeight });
-    };
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, []);
+    const loader = loaderRef.current;
+    const hero = heroPanelRef.current;
+    const title = titleRef.current;
+    const specimen = specimenRef.current;
+    const counter = counterRef.current;
+    const numEl = numRef.current;
+    if (!loader || !hero || !title || !specimen || !counter || !numEl) return;
 
-  // Ciclo de palavras
-  useEffect(() => {
-    if (index === WORDS.length - 1) {
-      const t = window.setTimeout(() => {
-        setWordsDone(true);
-      }, 1000);
-      return () => window.clearTimeout(t);
-    }
-    const t = window.setTimeout(
-      () => setIndex(index + 1),
-      index === 0 ? 1000 : 150
-    );
-    return () => window.clearTimeout(t);
-  }, [index]);
-
-  // Preload paralelo dos frames
-  useEffect(() => {
-    let cancelled = false;
-    let loaded = 0;
-
-    const loadOne = (i: number): Promise<void> =>
-      new Promise((resolve) => {
-        const img = new Image();
-        img.decoding = 'async';
-        const done = () => {
-          loaded++;
-          resolve();
-        };
-        img.onload = done;
-        img.onerror = done;
-        img.src = framePath(i);
-      });
-
-    (async () => {
-      const BATCH = 24;
-      for (let start = 0; start < FRAME_COUNT && !cancelled; start += BATCH) {
-        const end = Math.min(start + BATCH, FRAME_COUNT);
-        const promises: Promise<void>[] = [];
-        for (let i = start; i < end; i++) promises.push(loadOne(i));
-        await Promise.all(promises);
-      }
-      if (!cancelled) setFramesLoaded(true);
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  // Lógica de saída:
-  //   - se palavras E frames terminaram → exit imediato
-  //   - se palavras terminaram mas frames ainda carregando → espera max 3s, então exit
-  //     (frames continuam em background; VideoScrubSection mostra seu loader interno se não pronto)
-  useEffect(() => {
-    if (isExiting || !wordsDone) return;
-
-    const triggerExit = () => {
-      setIsExiting(true);
-      window.setTimeout(() => onComplete?.(), 1000);
-    };
-
-    if (framesLoaded) {
-      triggerExit();
+    // Reduced motion → pula direto pro site
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      onCompleteRef.current?.();
       return;
     }
 
-    // Cap de 3s aguardando frames depois das palavras
-    const t = window.setTimeout(triggerExit, 3000);
-    return () => window.clearTimeout(t);
-  }, [wordsDone, framesLoaded, isExiting, onComplete]);
+    let killed = false;
+    const ctx = gsap.context(() => {
+      // ENTRADA — título + counter fade-in sincronizado
+      gsap.to([title, counter], {
+        opacity: 1,
+        duration: 0.7,
+        ease: 'power2.out',
+        delay: 0.1,
+        startAt: { opacity: 0 },
+      });
 
-  const initialPath = `M0 0 L${dimension.width} 0 L${dimension.width} ${dimension.height} Q${dimension.width / 2} ${dimension.height + 300} 0 ${dimension.height} L0 0`;
-  const targetPath = `M0 0 L${dimension.width} 0 L${dimension.width} ${dimension.height} Q${dimension.width / 2} ${dimension.height} 0 ${dimension.height} L0 0`;
+      // === Sinais de "site pronto" ===
+      // 1. Fonts ready
+      const fonts = document.fonts?.ready ?? Promise.resolve();
+      // 2. window load
+      const loadEvt =
+        document.readyState === 'complete'
+          ? Promise.resolve()
+          : new Promise<void>((r) =>
+              window.addEventListener('load', () => r(), { once: true })
+            );
+      // 3. Frames do hero pré-carregados
+      const framesReady = new Promise<void>((resolve) => {
+        let loaded = 0;
+        const loadOne = (i: number): Promise<void> =>
+          new Promise((res) => {
+            const img = new Image();
+            img.decoding = 'async';
+            const done = () => {
+              loaded++;
+              res();
+            };
+            img.onload = done;
+            img.onerror = done;
+            img.src = framePath(i);
+          });
+        (async () => {
+          const BATCH = 24;
+          for (let start = 0; start < FRAME_COUNT; start += BATCH) {
+            if (killed) return;
+            const end = Math.min(start + BATCH, FRAME_COUNT);
+            const promises: Promise<void>[] = [];
+            for (let i = start; i < end; i++) promises.push(loadOne(i));
+            await Promise.all(promises);
+          }
+          resolve();
+        })();
+      });
 
-  const curve = {
-    initial: {
-      d: initialPath,
-      transition: { duration: 0.7, ease: [0.76, 0, 0.24, 1] as const },
-    },
-    exit: {
-      d: targetPath,
-      transition: { duration: 0.7, ease: [0.76, 0, 0.24, 1] as const, delay: 0.3 },
-    },
-  };
+      // === Counter 0→90 (creep) → 100 (snap) ===
+      const counterObj = { v: 0 };
+      const render = () => {
+        if (numEl) numEl.textContent = String(Math.min(99, Math.floor(counterObj.v)));
+      };
+      const creep = gsap.to(counterObj, {
+        v: 90,
+        duration: 2.6,
+        ease: 'power2.out',
+        onUpdate: render,
+      });
+
+      let started = false;
+      function go() {
+        if (started || killed) return;
+        started = true;
+        creep.kill();
+        gsap.to(counterObj, {
+          v: 100,
+          duration: 0.55,
+          ease: 'power2.inOut',
+          onUpdate: render,
+          onComplete: () => {
+            if (numEl) numEl.textContent = '100';
+            runSequence();
+          },
+        });
+      }
+
+      function runSequence() {
+        if (!loader || !hero || !title || !specimen || !counter) return;
+        const W = window.innerWidth;
+        const H = window.innerHeight;
+        const FX = Math.max(48, Math.round(W * 0.05));
+        const FY = Math.max(40, Math.round(H * 0.06));
+        const GAP = Math.max(24, Math.round(W * 0.03));
+        const R = Math.max(18, Math.round(W * 0.012));
+        const innerW = W - 2 * FX;
+        const innerH = H - 2 * FY;
+        const SHIFT = FX - W - GAP; // shift sincronizado pros dois cards
+
+        const tl = gsap.timeline({
+          onComplete: () => {
+            onCompleteRef.current?.();
+          },
+        });
+
+        // Estado 2: title sobe e some via mask (overflow:hidden na wrap)
+        tl.to(title, { yPercent: -130, duration: 0.65, ease: 'expo.in' }, 0);
+        tl.to(
+          counter,
+          { opacity: 0, yPercent: 30, duration: 0.45, ease: 'power2.in' },
+          0.05
+        );
+
+        // Estado 3: TITLE_2 revela top→bottom via clip-path
+        tl.to(
+          specimen,
+          {
+            clipPath: 'inset(0 0 0% 0)',
+            duration: 0.75,
+            ease: 'power3.out',
+          },
+          0.55
+        );
+
+        // Estado 4: loader vira card inset (moldura escura aparece)
+        tl.to(
+          loader,
+          {
+            top: FY,
+            left: FX,
+            width: innerW,
+            height: innerH,
+            borderRadius: R,
+            duration: 0.9,
+            ease: 'power3.inOut',
+          },
+          1.7
+        );
+        tl.to(
+          hero,
+          {
+            top: FY,
+            left: W + GAP,
+            width: innerW,
+            height: innerH,
+            borderRadius: R,
+            duration: 0.9,
+            ease: 'power3.inOut',
+          },
+          1.7
+        );
+
+        // Estado 5: PUSH — ambos cards animam left sincronizado
+        tl.to(
+          loader,
+          { left: FX + SHIFT, duration: 1.25, ease: 'expo.inOut' },
+          2.7
+        );
+        tl.to(
+          hero,
+          { left: W + GAP + SHIFT, duration: 1.25, ease: 'expo.inOut' },
+          2.7
+        );
+
+        // Estado 6: hero card expande pra fullscreen + fade-out revelando hero real
+        tl.to(
+          hero,
+          {
+            top: 0,
+            left: 0,
+            width: W,
+            height: H,
+            borderRadius: 0,
+            duration: 0.95,
+            ease: 'expo.inOut',
+          },
+          3.7
+        );
+        tl.to(
+          hero,
+          {
+            opacity: 0,
+            duration: 0.7,
+            ease: 'power2.in',
+          },
+          4.2
+        );
+      }
+
+      Promise.all([fonts, loadEvt, framesReady]).then(go);
+      const safety = window.setTimeout(go, 8000); // safety net — nunca trava
+      return () => window.clearTimeout(safety);
+    }, loader);
+
+    return () => {
+      killed = true;
+      ctx.revert();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
-    <motion.div
-      variants={slideUp}
-      initial="initial"
-      animate={isExiting ? 'exit' : 'initial'}
-      className="preloader-v2"
-      aria-busy={!isExiting}
-    >
-      {dimension.width > 0 && (
-        <>
-          <motion.p
-            variants={opacity}
-            initial="initial"
-            animate="enter"
-            className="preloader-v2__word"
-          >
-            <span className="preloader-v2__dot" />
-            {WORDS[index]}
-          </motion.p>
-          <svg className="preloader-v2__svg">
-            <motion.path
-              variants={curve}
-              initial="initial"
-              animate={isExiting ? 'exit' : 'initial'}
-              fill="#0d0d0d"
-            />
-          </svg>
-        </>
-      )}
-    </motion.div>
+    <>
+      <div id="bt-loader-panel" className="bt-card" ref={loaderRef} aria-hidden="true">
+        <div className="bt-title-wrap">
+          <div className="bt-loader-title" ref={titleRef}>{TITLE_1}</div>
+        </div>
+        <div className="bt-specimen-wrap">
+          <div className="bt-loader-specimen" ref={specimenRef}>{TITLE_2}</div>
+        </div>
+      </div>
+      <div id="bt-hero-panel" className="bt-card" ref={heroPanelRef} aria-hidden="true" />
+      <div id="bt-counter" ref={counterRef} aria-hidden="true">
+        <span ref={numRef}>0</span>
+        <span className="bt-unit">%</span>
+      </div>
+    </>
   );
 }
