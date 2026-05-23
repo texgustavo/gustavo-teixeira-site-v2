@@ -126,10 +126,12 @@ export default function Preloader({ onComplete }: PreloaderProps) {
         if (!loader || !hero || !title || !specimen || !counter) return;
         const W = window.innerWidth;
         const H = window.innerHeight;
-        const FX = Math.max(48, Math.round(W * 0.05));
-        const FY = Math.max(40, Math.round(H * 0.06));
+        // Moldura maior → card de ~64% do viewport. Estado 6 (expand pra
+        // fullscreen) ganha mais drama porque tem mais espaço pra "abrir".
+        const FX = Math.max(64, Math.round(W * 0.18));
+        const FY = Math.max(56, Math.round(H * 0.18));
         const GAP = Math.max(24, Math.round(W * 0.03));
-        const R = Math.max(18, Math.round(W * 0.012));
+        const R = Math.max(20, Math.round(W * 0.014));
         const innerW = W - 2 * FX;
         const innerH = H - 2 * FY;
         const SHIFT = FX - W - GAP; // shift sincronizado pros dois cards
