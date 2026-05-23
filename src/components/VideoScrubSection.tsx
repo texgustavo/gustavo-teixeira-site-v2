@@ -122,6 +122,40 @@ export default function VideoScrubSection({ paused = false }: { paused?: boolean
     const ctx = canvas.getContext('2d', { alpha: false });
     if (!ctx) return;
 
+    // ---------- Canvas sizing: cover-aware, cap DPR=2, no upscale ----------
+    // Mantém aspect 16:9 do source pra CSS object-fit:cover cropar
+    // corretamente. Em vez de canvas 2560×1440 fixo sendo CSS-escalado
+    // pra baixo, canvas tem exatamente os pixels que vão pra tela
+    // (com cap em FRAME_W → não upscale).
+    let lastDrawnIdx = -1;
+    const aspect = FRAME_W / FRAME_H;
+    const sizeCanvas = () => {
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      const vw = window.innerWidth * dpr;
+      const vh = window.innerHeight * dpr;
+      let cw: number, ch: number;
+      if (vw / vh < aspect) {
+        // Viewport mais portrait que o source → altura dirige, largura overflows (cover)
+        ch = vh;
+        cw = ch * aspect;
+      } else {
+        cw = vw;
+        ch = cw / aspect;
+      }
+      // Cap em source res — não desenha maior que a imagem original
+      if (cw > FRAME_W) {
+        cw = FRAME_W;
+        ch = FRAME_H;
+      }
+      const w = Math.round(cw);
+      const h = Math.round(ch);
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w;
+        canvas.height = h;
+        lastDrawnIdx = -1; // dimensão mudou → invalidar cache
+      }
+    };
+
     // ---------- Preload ----------
     const frames: (HTMLImageElement | null)[] = new Array(FRAME_COUNT).fill(null);
     let loaded = 0;
@@ -160,9 +194,11 @@ export default function VideoScrubSection({ paused = false }: { paused?: boolean
     // ---------- Draw ----------
     const drawFrame = (idx: number) => {
       const clamped = Math.max(0, Math.min(FRAME_COUNT - 1, Math.round(idx)));
+      if (clamped === lastDrawnIdx) return; // skip redundant draw
       const img = frames[clamped];
       if (!img) return;
-      ctx.drawImage(img, 0, 0, FRAME_W, FRAME_H);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      lastDrawnIdx = clamped;
     };
 
     // ---------- Cue activation (char-by-char no título, word-by-word no body) ----------
@@ -234,6 +270,21 @@ export default function VideoScrubSection({ paused = false }: { paused?: boolean
     };
 
     let lastProgress = 0;
+
+    // ---------- Scroll-driven draw scheduler (coalesce em 1 draw / rAF) ----------
+    let scrollDrawRaf = 0;
+    let pendingIdx = 0;
+    let pendingProgress = 0;
+    const flushScrollDraw = () => {
+      scrollDrawRaf = 0;
+      drawFrame(pendingIdx);
+      updateCues(pendingProgress);
+    };
+    const scheduleScrollDraw = (idx: number, progress: number) => {
+      pendingIdx = idx;
+      pendingProgress = progress;
+      if (!scrollDrawRaf) scrollDrawRaf = requestAnimationFrame(flushScrollDraw);
+    };
 
     const updateCues = (progress: number) => {
       const currentFrame = progress * (FRAME_COUNT - 1);
@@ -364,8 +415,9 @@ export default function VideoScrubSection({ paused = false }: { paused?: boolean
           isScrolling = true;
           const idx = p * (FRAME_COUNT - 1);
           currentFrame = Math.round(idx);
-          drawFrame(idx);
-          updateCues(p);
+          // Coalesce draws: agenda 1 draw por rAF (alinha com vsync e evita
+          // desenhar 2-3 frames duplicados dentro do mesmo tick durante scroll rápido)
+          scheduleScrollDraw(idx, p);
 
           // some o hint depois de 8% de scroll (já entendeu que precisa rolar)
           if (hintRef.current) {
@@ -390,6 +442,7 @@ export default function VideoScrubSection({ paused = false }: { paused?: boolean
     };
 
     // ---------- Boot ----------
+    sizeCanvas();
     batchLoad().then(() => {
       if (cancelled) return;
       drawFrame(0);
@@ -400,6 +453,7 @@ export default function VideoScrubSection({ paused = false }: { paused?: boolean
     });
 
     const onResize = () => {
+      sizeCanvas();
       sizeTrack();
       ScrollTrigger.refresh();
     };
@@ -409,6 +463,7 @@ export default function VideoScrubSection({ paused = false }: { paused?: boolean
       cancelled = true;
       if (idleTimer !== null) window.clearTimeout(idleTimer);
       if (rafId) cancelAnimationFrame(rafId);
+      if (scrollDrawRaf) cancelAnimationFrame(scrollDrawRaf);
       window.removeEventListener('resize', onResize);
       mainST?.kill();
     };
