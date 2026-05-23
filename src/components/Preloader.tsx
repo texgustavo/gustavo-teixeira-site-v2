@@ -126,10 +126,10 @@ export default function Preloader({ onComplete }: PreloaderProps) {
         if (!loader || !hero || !title || !specimen || !counter) return;
         const W = window.innerWidth;
         const H = window.innerHeight;
-        // Moldura maior → card de ~64% do viewport. Estado 6 (expand pra
-        // fullscreen) ganha mais drama porque tem mais espaço pra "abrir".
-        const FX = Math.max(64, Math.round(W * 0.18));
-        const FY = Math.max(56, Math.round(H * 0.18));
+        // Moldura ~14% → card de ~72% do viewport. Estado 6 (expand) ainda
+        // ganha drama mas card não fica miniatura.
+        const FX = Math.max(56, Math.round(W * 0.14));
+        const FY = Math.max(48, Math.round(H * 0.14));
         const GAP = Math.max(24, Math.round(W * 0.03));
         const R = Math.max(20, Math.round(W * 0.014));
         const innerW = W - 2 * FX;
@@ -183,6 +183,17 @@ export default function Preloader({ onComplete }: PreloaderProps) {
             width: innerW,
             height: innerH,
             borderRadius: R,
+            duration: 0.9,
+            ease: 'power3.inOut',
+          },
+          1.7
+        );
+        // Specimen escala proporcional ao card (mesma duração/easing) — texto
+        // shrinka junto pra não ficar gigante relativo ao card menor.
+        tl.to(
+          specimen,
+          {
+            scale: innerW / W,
             duration: 0.9,
             ease: 'power3.inOut',
           },
