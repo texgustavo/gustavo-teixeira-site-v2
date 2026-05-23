@@ -244,7 +244,10 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
   padding: 0 4vw;
   will-change: transform, clip-path;
 }
-.bt-loader-title { opacity: 0; }
+/* Defaults visíveis pra ser resiliente — se GSAP falhar em algum browser,
+   o preloader ainda mostra título. JS faz startAt: { opacity: 0 } pra
+   animar fade-in cinematic; sem JS, fica estático visível. */
+.bt-loader-title { opacity: 1; }
 .bt-loader-specimen { clip-path: inset(0 0 100% 0); }
 
 #bt-counter {

@@ -73,12 +73,32 @@ export default function Preloader({ onComplete }: PreloaderProps) {
       return Promise.all([fonts, loadEvt, framesReady]);
     };
 
-    // Reduced motion → sem animação cinematográfica, mas AINDA gate de
-    // ready signals pra não bypassar a sincronia com VideoScrubSection.
+    // Reduced motion → preloader ESTÁTICO visível (sem cinematic), depois
+    // fade-out simples quando ready. Comum em Windows com "Mostrar animações"
+    // desativado nas configs de acessibilidade. Antes só esperava ready sem
+    // mostrar nada → user via cream em branco achando que nada carregava.
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      waitForReady().then(() => onCompleteRef.current?.());
-      const safetyRm = window.setTimeout(() => onCompleteRef.current?.(), 8000);
-      return () => window.clearTimeout(safetyRm);
+      // Mostra título + counter 100% estáticos (sem fade-in cinematic)
+      gsap.set([title, counter], { opacity: 1 });
+      if (numEl) numEl.textContent = '100';
+
+      let firedRm = false;
+      const finishRm = () => {
+        if (firedRm) return;
+        firedRm = true;
+        // Fade-out simples (allowed em reduced-motion, é opacity transition)
+        gsap.to([backdrop, loader, counter], {
+          opacity: 0,
+          duration: 0.4,
+          onComplete: () => onCompleteRef.current?.(),
+        });
+      };
+      waitForReady().then(finishRm);
+      const safetyRm = window.setTimeout(finishRm, 8000);
+      return () => {
+        window.clearTimeout(safetyRm);
+        gsap.killTweensOf([backdrop, loader, counter, title]);
+      };
     }
 
     let killed = false;
