@@ -14,10 +14,11 @@ gsap.registerPlugin(ScrollTrigger);
 const FRAME_COUNT = 372;
 const FPS = 24;
 const FRAME_INTERVAL = 1000 / FPS;
-// Multiplicador do range de scroll — mobile usa fator menor pra Hero não ocupar
-// 68% do scroll total (21vh era exaustivo); desktop fica cinematográfico.
+// Multiplicador do range de scroll — controla quantos viewports de scroll
+// o hero ocupa. Desktop em 0.7 → ~11vh (antes 1.4 = 22vh, pesado pro user).
+// Mobile mantém 0.4 → ~6vh (touch é mais cansativo, scroll curto).
 const IS_MOBILE = typeof window !== 'undefined' && window.innerWidth < 768;
-const SCROLL_FACTOR = IS_MOBILE ? 0.4 : 1.4;
+const SCROLL_FACTOR = IS_MOBILE ? 0.4 : 0.7;
 const FRAME_W = 2560;
 const FRAME_H = 1440;
 
