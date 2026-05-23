@@ -29,7 +29,10 @@ export default function App() {
     }
 
     const lenis = new Lenis({
-      duration: 1.25,
+      // duration 0.9 (antes 1.25) → menos inércia brigando com o scrub: 0.4 do
+      // ScrollTrigger no Hero. Double-smoothing causa feel de "atraso" que
+      // parece low-FPS mesmo quando o FPS está OK.
+      duration: 0.9,
       easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       smoothWheel: true,
       wheelMultiplier: 1,

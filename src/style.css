@@ -414,6 +414,11 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
   user-select: none;
   display: block;
   background: #0C0A08;
+  /* GPU layer promotion — força camada de composite separada, libera main thread
+     do compositing e elimina micro-stutters durante scroll. */
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 .video-scrub__loader {

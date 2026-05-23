@@ -157,30 +157,32 @@ export default function VideoScrubSection({ paused = false }: { paused?: boolean
       }
     };
 
-    // ---------- Preload ----------
-    const frames: (HTMLImageElement | null)[] = new Array(FRAME_COUNT).fill(null);
+    // ---------- Preload via createImageBitmap (pre-decoded, GPU-friendly) ----------
+    // ImageBitmap é decodificado uma vez e fica em buffer otimizado pra drawImage.
+    // Muito mais rápido que HTMLImageElement (que decoda lazy + tem overhead DOM).
+    // Padrão dos sites de image-sequence premium (Apple iPad scrub etc).
+    const frames: (ImageBitmap | null)[] = new Array(FRAME_COUNT).fill(null);
     let loaded = 0;
     let cancelled = false;
 
-    const loadOne = (i: number): Promise<void> =>
-      new Promise((resolve) => {
-        const img = new Image();
-        img.decoding = 'async';
-        img.onload = () => {
-          if (!cancelled) {
-            frames[i] = img;
-            loaded++;
-            setLoadProgress(loaded / FRAME_COUNT);
-          }
-          resolve();
-        };
-        img.onerror = () => {
-          loaded++;
-          setLoadProgress(loaded / FRAME_COUNT);
-          resolve();
-        };
-        img.src = framePath(i);
-      });
+    const loadOne = async (i: number): Promise<void> => {
+      try {
+        const resp = await fetch(framePath(i));
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const blob = await resp.blob();
+        const bitmap = await createImageBitmap(blob);
+        if (!cancelled) {
+          frames[i] = bitmap;
+        } else {
+          bitmap.close();
+        }
+      } catch {
+        // engole erro, marca como loaded pra não travar progress
+      } finally {
+        loaded++;
+        if (!cancelled) setLoadProgress(loaded / FRAME_COUNT);
+      }
+    };
 
     const batchLoad = async () => {
       const BATCH = 24;
@@ -467,6 +469,8 @@ export default function VideoScrubSection({ paused = false }: { paused?: boolean
       if (scrollDrawRaf) cancelAnimationFrame(scrollDrawRaf);
       window.removeEventListener('resize', onResize);
       mainST?.kill();
+      // Libera GPU memory dos ImageBitmaps (cada um pode ser 14MB de pixels)
+      for (const bmp of frames) bmp?.close();
     };
   }, [ready]);
 
