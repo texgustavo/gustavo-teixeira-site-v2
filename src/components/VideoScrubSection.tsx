@@ -459,6 +459,27 @@ export default function VideoScrubSection({ paused = false }: { paused?: boolean
       if (cancelled) return;
       drawFrame(0);
       setReady(true);
+      // Background warmup: força decode eager de todas as imagens depois
+      // que o site já tá interativo. Combate "decode-on-demand jank" do
+      // Windows Chrome em frames específicos (tipo o bridge cue 3 onde
+      // tava travando). Mac não precisa mas roda inócuo lá. Roda 1 por
+      // rIC pra não bloquear main thread.
+      const requestIdle =
+        (window as Window & {
+          requestIdleCallback?: (cb: () => void) => number;
+        }).requestIdleCallback ?? ((cb: () => void) => setTimeout(cb, 0));
+      const warmupOne = (i: number) => {
+        if (cancelled || i >= FRAME_COUNT) return;
+        const img = frames[i];
+        if (img) {
+          img.decode().catch(() => {}).finally(() => {
+            requestIdle(() => warmupOne(i + 1));
+          });
+        } else {
+          requestIdle(() => warmupOne(i + 1));
+        }
+      };
+      requestIdle(() => warmupOne(0));
     });
 
     const onResize = () => {
