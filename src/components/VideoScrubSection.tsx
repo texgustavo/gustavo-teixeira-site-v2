@@ -157,32 +157,38 @@ export default function VideoScrubSection({ paused = false }: { paused?: boolean
       }
     };
 
-    // ---------- Preload via createImageBitmap (pre-decoded, GPU-friendly) ----------
-    // ImageBitmap é decodificado uma vez e fica em buffer otimizado pra drawImage.
-    // Muito mais rápido que HTMLImageElement (que decoda lazy + tem overhead DOM).
-    // Padrão dos sites de image-sequence premium (Apple iPad scrub etc).
-    const frames: (ImageBitmap | null)[] = new Array(FRAME_COUNT).fill(null);
+    // ---------- Preload com HTMLImageElement + img.decode() ----------
+    // HTMLImageElement mantém sincronia com o Preloader (mesma API → mesmo
+    // timing de load). img.decode() força decode eager DEPOIS do onload pra
+    // garantir que o primeiro draw não tenha hit de decode jank. Tradeoff
+    // perfeito: timing previsível + decode pre-warmed.
+    const frames: (HTMLImageElement | null)[] = new Array(FRAME_COUNT).fill(null);
     let loaded = 0;
     let cancelled = false;
 
-    const loadOne = async (i: number): Promise<void> => {
-      try {
-        const resp = await fetch(framePath(i));
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        const blob = await resp.blob();
-        const bitmap = await createImageBitmap(blob);
-        if (!cancelled) {
-          frames[i] = bitmap;
-        } else {
-          bitmap.close();
-        }
-      } catch {
-        // engole erro, marca como loaded pra não travar progress
-      } finally {
-        loaded++;
-        if (!cancelled) setLoadProgress(loaded / FRAME_COUNT);
-      }
-    };
+    const loadOne = (i: number): Promise<void> =>
+      new Promise((resolve) => {
+        const img = new Image();
+        img.decoding = 'async';
+        img.onload = () => {
+          if (cancelled) return resolve();
+          // Force eager decode → garante que primeiro drawImage não tenha jank
+          img.decode().catch(() => {}).finally(() => {
+            if (!cancelled) {
+              frames[i] = img;
+              loaded++;
+              setLoadProgress(loaded / FRAME_COUNT);
+            }
+            resolve();
+          });
+        };
+        img.onerror = () => {
+          loaded++;
+          if (!cancelled) setLoadProgress(loaded / FRAME_COUNT);
+          resolve();
+        };
+        img.src = framePath(i);
+      });
 
     const batchLoad = async () => {
       const BATCH = 24;
@@ -469,8 +475,6 @@ export default function VideoScrubSection({ paused = false }: { paused?: boolean
       if (scrollDrawRaf) cancelAnimationFrame(scrollDrawRaf);
       window.removeEventListener('resize', onResize);
       mainST?.kill();
-      // Libera GPU memory dos ImageBitmaps (cada um pode ser 14MB de pixels)
-      for (const bmp of frames) bmp?.close();
     };
   }, [ready]);
 
