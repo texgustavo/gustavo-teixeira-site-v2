@@ -157,11 +157,10 @@ export default function VideoScrubSection({ paused = false }: { paused?: boolean
       }
     };
 
-    // ---------- Preload com HTMLImageElement + img.decode() ----------
-    // HTMLImageElement mantém sincronia com o Preloader (mesma API → mesmo
-    // timing de load). img.decode() força decode eager DEPOIS do onload pra
-    // garantir que o primeiro draw não tenha hit de decode jank. Tradeoff
-    // perfeito: timing previsível + decode pre-warmed.
+    // ---------- Preload com HTMLImageElement ----------
+    // Tirei img.decode() que tava serializando decode de 372 frames e
+    // travando o load no Windows. Browser decoda lazy no primeiro draw,
+    // o que é fino na prática (decode de 1 WebP 2560×1440 < 16ms).
     const frames: (HTMLImageElement | null)[] = new Array(FRAME_COUNT).fill(null);
     let loaded = 0;
     let cancelled = false;
@@ -171,16 +170,12 @@ export default function VideoScrubSection({ paused = false }: { paused?: boolean
         const img = new Image();
         img.decoding = 'async';
         img.onload = () => {
-          if (cancelled) return resolve();
-          // Force eager decode → garante que primeiro drawImage não tenha jank
-          img.decode().catch(() => {}).finally(() => {
-            if (!cancelled) {
-              frames[i] = img;
-              loaded++;
-              setLoadProgress(loaded / FRAME_COUNT);
-            }
-            resolve();
-          });
+          if (!cancelled) {
+            frames[i] = img;
+            loaded++;
+            setLoadProgress(loaded / FRAME_COUNT);
+          }
+          resolve();
         };
         img.onerror = () => {
           loaded++;
@@ -451,14 +446,19 @@ export default function VideoScrubSection({ paused = false }: { paused?: boolean
     };
 
     // ---------- Boot ----------
+    // Setup do ScrollTrigger pin acontece IMEDIATAMENTE no mount (não espera
+    // o preload). Isso garante que mesmo se o user scrollar antes dos frames
+    // carregarem, o hero pina e não é skipado. drawFrame bail early se o
+    // frame[idx] ainda é null → canvas fica no bg color até o frame chegar.
     sizeCanvas();
+    initCueStates();
+    setup();
+    rafId = requestAnimationFrame(tick);
+
     batchLoad().then(() => {
       if (cancelled) return;
       drawFrame(0);
-      initCueStates();
       setReady(true);
-      setup();
-      rafId = requestAnimationFrame(tick);
     });
 
     const onResize = () => {

@@ -38,10 +38,47 @@ export default function Preloader({ onComplete }: PreloaderProps) {
     const numEl = numRef.current;
     if (!backdrop || !loader || !hero || !title || !specimen || !counter || !numEl) return;
 
-    // Reduced motion → pula direto pro site
+    // Função de espera dos 3 sinais de "site pronto", compartilhada entre
+    // o caminho normal e o de reduced-motion. Garante que o site só
+    // libera scroll DEPOIS que VideoScrubSection teve chance de pre-carregar.
+    const waitForReady = () => {
+      const fonts = document.fonts?.ready ?? Promise.resolve();
+      const loadEvt =
+        document.readyState === 'complete'
+          ? Promise.resolve()
+          : new Promise<void>((r) =>
+              window.addEventListener('load', () => r(), { once: true })
+            );
+      const framesReady = new Promise<void>((resolve) => {
+        const loadOne = (i: number): Promise<void> =>
+          new Promise((res) => {
+            const img = new Image();
+            img.decoding = 'async';
+            const done = () => res();
+            img.onload = done;
+            img.onerror = done;
+            img.src = framePath(i);
+          });
+        (async () => {
+          const BATCH = 24;
+          for (let start = 0; start < FRAME_COUNT; start += BATCH) {
+            const end = Math.min(start + BATCH, FRAME_COUNT);
+            const promises: Promise<void>[] = [];
+            for (let i = start; i < end; i++) promises.push(loadOne(i));
+            await Promise.all(promises);
+          }
+          resolve();
+        })();
+      });
+      return Promise.all([fonts, loadEvt, framesReady]);
+    };
+
+    // Reduced motion → sem animação cinematográfica, mas AINDA gate de
+    // ready signals pra não bypassar a sincronia com VideoScrubSection.
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      onCompleteRef.current?.();
-      return;
+      waitForReady().then(() => onCompleteRef.current?.());
+      const safetyRm = window.setTimeout(() => onCompleteRef.current?.(), 8000);
+      return () => window.clearTimeout(safetyRm);
     }
 
     let killed = false;

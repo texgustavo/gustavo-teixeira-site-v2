@@ -158,22 +158,17 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
   pointer-events: none;
   will-change: opacity;
 }
-/* Textura "topografia + ruído" — duas camadas screen blend sobre preto,
-   adaptado do pattern v2 (linha 91 do style.css):
-   - Topografia: low-freq fractalNoise → curvas orgânicas estilo carta náutica
-   - Grain: high-freq fractalNoise → film grain de papel
-   Visibilidade calibrada pra ser claramente perceptível sem distrair do card. */
+/* Textura grain de papel sobre preto. Single layer SVG noise com stitchTiles
+   pra browser cachear o pattern (em vez de recomputar feTurbulence a cada
+   repaint). Mix-blend-mode removido — substituído por opacity direta sobre
+   preto, evita ciclo de composição custoso em Chrome/Edge Windows. */
 #bt-backdrop::after {
   content: '';
   position: absolute;
   inset: 0;
-  background-image:
-    url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 1200'%3E%3Cfilter id='t'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.008' numOctaves='3' seed='9'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1 -0.55'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23t)'/%3E%3C/svg%3E"),
-    url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.4' numOctaves='2' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.32 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-size: 1400px 1400px, 240px 240px;
-  background-position: center center, 0 0;
-  opacity: 0.6;
-  mix-blend-mode: screen;
+  background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='2' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.18 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 240px 240px;
+  background-repeat: repeat;
   pointer-events: none;
 }
 
@@ -199,17 +194,18 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
 }
 #bt-loader-panel { z-index: 99999; }
 
-/* hero-panel: bg = primeiro frame NYC do VideoScrubSection com attachment:fixed.
-   Card funciona como janela que abre revelando mais cidade conforme expande.
-   Quando o card fica fullscreen, a imagem já está no scale final → match perfeito
-   com o canvas do VideoScrubSection por baixo no fade-out. */
+/* hero-panel: bg = primeiro frame NYC do VideoScrubSection.
+   Antes usava background-attachment: fixed (efeito "janela fixa") mas isso
+   é perf killer em Chrome/Edge Windows — força repaint de full background
+   por scroll/animação. Trocado por cover normal: imagem escala com o card.
+   Visualmente o efeito de "card crescendo revela mais cidade" virou
+   "card crescendo zoom out da cidade" — ainda cinematográfico, sem custo. */
 #bt-hero-panel {
   left: 100vw; /* off-screen direita inicialmente */
   background-color: #000;
   background-image: url('/frames/f_0001.webp');
   background-size: cover;
   background-position: center center;
-  background-attachment: fixed;
 }
 #bt-hero-panel::before { display: none; } /* sem ruído cream em cima da foto */
 
