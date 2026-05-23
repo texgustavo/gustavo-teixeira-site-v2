@@ -158,6 +158,17 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
   pointer-events: none;
   will-change: opacity;
 }
+/* Film grain sutil — feTurbulence high-freq + screen blend pra acender uns
+   pixels sobre o preto. Vibe cinema 35mm sem distrair do card. */
+#bt-backdrop::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='320' height='320'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1 0'/></filter><rect width='100%' height='100%' filter='url(%23g)'/></svg>");
+  opacity: 0.06;
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
 
 .bt-card {
   position: fixed;
