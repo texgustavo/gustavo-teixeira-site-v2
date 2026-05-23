@@ -180,7 +180,20 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
   will-change: top, left, width, height, border-radius, opacity;
 }
 #bt-loader-panel { z-index: 99999; }
-#bt-hero-panel { left: 100vw; } /* off-screen direita inicialmente */
+
+/* hero-panel: bg = primeiro frame NYC do VideoScrubSection com attachment:fixed.
+   Card funciona como janela que abre revelando mais cidade conforme expande.
+   Quando o card fica fullscreen, a imagem já está no scale final → match perfeito
+   com o canvas do VideoScrubSection por baixo no fade-out. */
+#bt-hero-panel {
+  left: 100vw; /* off-screen direita inicialmente */
+  background-color: #000;
+  background-image: url('/frames/f_0001.webp');
+  background-size: cover;
+  background-position: center center;
+  background-attachment: fixed;
+}
+#bt-hero-panel::before { display: none; } /* sem ruído cream em cima da foto */
 
 .bt-card::before {
   content: '';
