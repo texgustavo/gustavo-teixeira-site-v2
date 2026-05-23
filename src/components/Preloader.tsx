@@ -18,6 +18,7 @@ interface PreloaderProps {
 }
 
 export default function Preloader({ onComplete }: PreloaderProps) {
+  const backdropRef = useRef<HTMLDivElement>(null);
   const loaderRef = useRef<HTMLDivElement>(null);
   const heroPanelRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLDivElement>(null);
@@ -28,13 +29,14 @@ export default function Preloader({ onComplete }: PreloaderProps) {
   onCompleteRef.current = onComplete;
 
   useEffect(() => {
+    const backdrop = backdropRef.current;
     const loader = loaderRef.current;
     const hero = heroPanelRef.current;
     const title = titleRef.current;
     const specimen = specimenRef.current;
     const counter = counterRef.current;
     const numEl = numRef.current;
-    if (!loader || !hero || !title || !specimen || !counter || !numEl) return;
+    if (!backdrop || !loader || !hero || !title || !specimen || !counter || !numEl) return;
 
     // Reduced motion → pula direto pro site
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
@@ -220,6 +222,16 @@ export default function Preloader({ onComplete }: PreloaderProps) {
           },
           4.2
         );
+        // Backdrop preto fade-out junto com o hero card → revela VideoScrubSection
+        tl.to(
+          backdrop,
+          {
+            opacity: 0,
+            duration: 0.7,
+            ease: 'power2.in',
+          },
+          4.2
+        );
       }
 
       Promise.all([fonts, loadEvt, framesReady]).then(go);
@@ -236,6 +248,7 @@ export default function Preloader({ onComplete }: PreloaderProps) {
 
   return (
     <>
+      <div id="bt-backdrop" ref={backdropRef} aria-hidden="true" />
       <div id="bt-loader-panel" className="bt-card" ref={loaderRef} aria-hidden="true">
         <div className="bt-title-wrap">
           <div className="bt-loader-title" ref={titleRef}>{TITLE_1}</div>

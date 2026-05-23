@@ -150,6 +150,15 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
    Dois cards (loader + hero-stand-in) se empurrando como esteira, hero-panel expande
    fullscreen + fade-out revelando VideoScrubSection. Paleta Steel & Gold mapeada
    nos placeholders da skill. */
+#bt-backdrop {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  z-index: 99997;
+  pointer-events: none;
+  will-change: opacity;
+}
+
 .bt-card {
   position: fixed;
   top: 0;
@@ -228,6 +237,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
 #bt-counter .bt-unit { color: #C79858; } /* warm gold accent v2 */
 
 @media (prefers-reduced-motion: reduce) {
+  #bt-backdrop,
   #bt-loader-panel,
   #bt-hero-panel,
   #bt-counter { display: none !important; }
